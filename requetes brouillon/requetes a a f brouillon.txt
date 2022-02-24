@@ -1,0 +1,50 @@
+# version brouillon de la section B du travail intégrateur de Bases de données 1.
+#Date: 22 février 2022
+#auteur: Simon Fréchette
+#S.V.P Apporter des corrections au besoin !
+
+
+
+a) 
+SELECT Monstre.nom, Monstre.numero_ass_maladie FROM Humanoide 
+INNER JOIN Famille_monstre ON Humanoide.famille = Famille_monstre.id_famille
+
+b)
+SELECT Salle.fonction,Salle.largeur*Salle.longueur AS aire FROM Salle 
+ORDER BY aire DESC LIMIT 1;
+
+c) 
+SELECT Humamoide.arme FROM Humaoide 
+INNER JOIN Famille_monstre ON Famille_monstre.id_famille = Humanoide.famille
+INNER JOIN Monstre ON Monstre.id_famille = Famille_monstre.id_famille
+WHERE Monstre.code_employe = 'A320';
+
+d)
+SELECT Monstre.nom FROM Responsabilite 
+INNER JOIN Affectation_salle ON Affectation_salle.responsabilite = Responsabilite.id_responsabilite
+INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
+INNER JOIN Monstre ON Affectation_salle.monstre = Monstre.id_monstre
+WHERE Salle.fonction = 'salle des explosifs'
+ORDER BY Responsabilite.niveau_responsabilite DESC
+LIMIT 1;
+
+e)
+SELECT Monstre.nom ON Salle 
+INNER JOIN Affectation_salle ON Salle.id_salle= Affectation_salle.salle
+INNER JOIN Monstre ON Affectation_salle.monstre = Monstre.id_monstre
+WHERE Salle.fonction = 'réfectoire louche';
+ORDER BY Monstre.nom;
+
+f) SELECT Monstre.nom FROM Expedition
+INNER JOIN Visite_salle ON Visite_salle.expedition = Expedition.id_expedition
+INNER JOIN Salle ON Visite_salle.salle = Salle.id_salle
+INNER JOIN Affecation_salle ON Affectation_salle.salle = Salle.id_salle
+INNER JOIN Monstre ON Affectation_salle.monstre = Monstre.id_monstre
+WHERE Salle.fonction = 'cachot humide'
+GROUP BY Salle.fonction
+HAVING Visite_salle.moment_visite BETWEEN Expedition.depart AND Expedition.terminaison;
+
+
+
+
+
