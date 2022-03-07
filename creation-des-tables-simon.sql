@@ -45,20 +45,14 @@ CREATE TABLE Salle(
 
 #-------------------------------------------------------------------------------------------------
 
-# -- Affectation_salle
-CREATE TABLE Affectation_salle (
-id_affectation INT PRIMARY KEY AUTO_INCREMENT,
-monstre INT,
-responsabilite INT,
-salle INT,
-debut_affectation DATETIME,
-fin_affectation DATETIME,
-
-FOREIGN KEY (monstre) REFERENCES Monstre(id_monstre),
-FOREIGN KEY (responsabilite) REFERENCES Responsabilite(id_responsabilite),
-FOREIGN KEY (salle) REFERENCES Salle(id_salle)
+# -- Famille_monstre
+CREATE TABLE Famille_monstre(
+id_famille INT PRIMARY KEY AUTO_INCREMENT,
+nom_famille VARCHAR(255),
+point_vie_maximal INT,
+degat_base INT
 );
-# -- fin Affectation_salle
+# -- fin Famille_monstre
 
 #-------------------------------------------------------------------------------------------------
 
@@ -89,14 +83,20 @@ niveau_responsabilite INT
 
 #-------------------------------------------------------------------------------------------------
 
-# -- Famille_monstre
-CREATE TABLE Famille_monstre(
-id_famille INT PRIMARY KEY AUTO_INCREMENT,
-nom_famille VARCHAR(255),
-point_vie_maximal INT,
-degat_base INT
+# -- Affectation_salle
+CREATE TABLE Affectation_salle (
+id_affectation INT PRIMARY KEY AUTO_INCREMENT,
+monstre INT,
+responsabilite INT,
+salle INT,
+debut_affectation DATETIME,
+fin_affectation DATETIME,
+
+FOREIGN KEY (monstre) REFERENCES Monstre(id_monstre),
+FOREIGN KEY (responsabilite) REFERENCES Responsabilite(id_responsable),
+FOREIGN KEY (salle) REFERENCES Salle(id_salle)
 );
-# -- fin Famille_monstre
+# -- fin Affectation_salle
 
 #-------------------------------------------------------------------------------------------------
 
@@ -127,7 +127,7 @@ FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 #-------------------------------------------------------------------------------------------------
 
 # -- Elementaire
-CREATE TABLE Humanoide(
+CREATE TABLE Elementaire(
 id_elementaire INT PRIMARY KEY AUTO_INCREMENT,
 famille INT,
 element ENUM("1","2"),
@@ -138,4 +138,111 @@ FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 # -- fin Elementaire
 
 #-------------------------------------------------------------------------------------------------
+#Ceci est la partie du travail effectuée par Clément
+#
+#Coffre_tesor
+#Objet
+#Ligne_coffre
+#
+#Expedition
+#Visite_salle
+#
+#Aventurier
+#Expedition_avanturier
+#
+#Il s'agit des requêtes situées dans le bas, à droite
+#
+#date de début: 4 mars 2022
+#
+#Par: Clément Provencher
+#langage: SQL
+#
+#-------------------------------------------------------------------------------------------------
 
+# -- Coffre_tresor
+CREATE TABLE Coffre_tresor(
+	id_coffre_tresor INTEGER AUTO_INCREMENT PRIMARY KEY,
+    code_secret CHAR(64),
+    salle INTEGER,
+    
+    FOREIGN KEY (salle) REFERENCES Salle(id_salle)
+    );
+# -- fin Coffre_tresor
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Objet
+CREATE TABLE Objet(
+	id_objet INTEGER AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(255),
+    valeur INT,
+    masse FLOAT
+    );
+# -- fin Objet
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Ligne_coffre
+CREATE TABLE Ligne_coffre(
+	coffre INTEGER,
+    objet INTEGER,
+    
+    PRIMARY KEY(coffre, objet),
+    FOREIGN KEY (coffre) REFERENCES Coffre_tresor(id_coffre_tresor),
+    FOREIGN KEY (objet) REFERENCES Objet(id_objet)
+    );
+# -- fin Objet
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Expedition
+CREATE TABLE Expedition(
+	id_expedition INTEGER AUTO_INCREMENT PRIMARY KEY,
+    nom_equipe VARCHAR(255),
+    depart DATETIME,
+    terminaison DATETIME
+    );
+# -- fin Expedition
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Visite_salle
+CREATE TABLE Visite_salle(
+	salle INTEGER,
+    expedition INTEGER,
+    moment_visite DATETIME,
+    appreciation TEXT,
+    
+    PRIMARY KEY(salle, expedition),
+    FOREIGN KEY (salle) REFERENCES Salle(id_salle),
+    FOREIGN KEY (expedition) REFERENCES Expedition(id_expedition)
+    );
+# -- fin Visite_salle
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Aventurier
+CREATE TABLE Aventurier(
+	id_aventurier INTEGER AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(255),
+    classe VARCHAR(255),
+    niveau TINYINT,
+    point_vie INTEGER,
+    attaque INTEGER
+    );
+# -- fin Aventurier
+
+#-------------------------------------------------------------------------------------------------
+
+# -- Expedition_aventurier
+CREATE TABLE Expedition_aventurier(
+	id_expedition INTEGER,
+    id_aventurier INTEGER,
+    
+    PRIMARY KEY(id_expedition, id_aventurier),
+    FOREIGN KEY (id_expedition) REFERENCES Expedition(id_expedition),
+    FOREIGN KEY (id_aventurier) REFERENCES Aventurier(id_aventurier)
+    );
+# -- fin Expedition_aventurier
+
+#-------------------------------------------------------------------------------------------------
