@@ -1,3 +1,7 @@
+# --
+USE DonjonInc;
+# --
+
 INSERT INTO Famille_monstre (id_famille, nom_famille, point_vie_maximal, degat_base) VALUES
 	(1, 'Zombie', 12, 3),
 	(2, 'Zombie de Troll', 36, 8),
