@@ -19,7 +19,7 @@
 #Par: Simon Fréchette
 # langage: SQL
 #
-#TODO: mettre les valeurs d'enum
+#TODO: mettre les valeurs d'enum DONE 2022-03-07
 #
 #-------------------------------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ FOREIGN KEY (id_famille) REFERENCES Famille_monstre(id_famille)
 
 # -- Responsabilite
 CREATE TABLE Responsabilite(
-id_responsable INT PRIMARY KEY AUTO_INCREMENT,
+id_responsabilite INT PRIMARY KEY AUTO_INCREMENT,
 titre VARCHAR(255),
 niveau_responsabilite INT
 );
@@ -93,7 +93,7 @@ debut_affectation DATETIME,
 fin_affectation DATETIME,
 
 FOREIGN KEY (monstre) REFERENCES Monstre(id_monstre),
-FOREIGN KEY (responsabilite) REFERENCES Responsabilite(id_responsable),
+FOREIGN KEY (responsabilite) REFERENCES Responsabilite(id_responsabilite),
 FOREIGN KEY (salle) REFERENCES Salle(id_salle)
 );
 # -- fin Affectation_salle
@@ -130,8 +130,8 @@ FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 CREATE TABLE Elementaire(
 id_elementaire INT PRIMARY KEY AUTO_INCREMENT,
 famille INT,
-element ENUM("1","2"),
-taille ENUM("1","2"),
+element ENUM("air","feu","terre","eau"),
+taille ENUM("rikiki","moyen","grand","colossal"),
 
 FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 );
@@ -186,6 +186,7 @@ CREATE TABLE Objet(
 CREATE TABLE Ligne_coffre(
 	coffre INTEGER,
     objet INTEGER,
+    quantite INTEGER,
     
     PRIMARY KEY(coffre, objet),
     FOREIGN KEY (coffre) REFERENCES Coffre_tresor(id_coffre_tresor),
