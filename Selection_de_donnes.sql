@@ -29,4 +29,9 @@ SELECT nom, sum(datediff(fin_affectation, debut_affectation)) AS temps_affectati
     LIMIT 1;
     
 # -- N
-# --TODO
+SELECT count(moment_visite BETWEEN debut_affectation AND fin_affectation) AS nb_combats, nom FROM Affectation_salle
+	INNER JOIN Salle ON id_salle = Affectation_salle.salle
+    INNER JOIN Visite_salle ON id_salle = Visite_salle.salle
+    INNER JOIN Monstre ON monstre = id_monstre
+    GROUP BY monstre
+    ORDER BY nb_combats;
