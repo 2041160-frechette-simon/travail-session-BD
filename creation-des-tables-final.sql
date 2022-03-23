@@ -1,25 +1,14 @@
 #-------------------------------------------------------------------------------------------------
 #Ceci est le script de création SQL pour les tables suivantes du travail de session "ressources monstrueuses":
 #
-#Salle
-#Affectation_salle
-#Monstre
-#Responsabilite
-#Famille_monstre
 #
-#Humanoide
-#Mort_vivant
-#Elementaire
-#
-# Il s'agit des requêtes situées dans le haut du schéma, à l'horizontal.
 #
 # date de début: 3 mars 2022
 #
 #
-#Par: Simon Fréchette
+#Par: Simon Fréchette et clément Provencher
 # langage: SQL
 #
-#TODO: mettre les valeurs d'enum DONE 2022-03-07
 #
 #-------------------------------------------------------------------------------------------------
 
@@ -138,24 +127,6 @@ FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 # -- fin Elementaire
 
 #-------------------------------------------------------------------------------------------------
-#Ceci est la partie du travail effectuée par Clément
-#
-#Coffre_tesor
-#Objet
-#Ligne_coffre
-#
-#Expedition
-#Visite_salle
-#
-#Aventurier
-#Expedition_avanturier
-#
-#Il s'agit des requêtes situées dans le bas, à droite
-#
-#date de début: 4 mars 2022
-#
-#Par: Clément Provencher
-#langage: SQL
 #
 #-------------------------------------------------------------------------------------------------
 

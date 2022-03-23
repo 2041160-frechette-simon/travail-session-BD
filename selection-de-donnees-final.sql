@@ -8,8 +8,8 @@
 # 
 # 
 #
-# NOTE: enlever les rubriques encadrées par les commentaires "test" avant la remise
-#TODO Requete h) Check la sum. Donne 8.05 pile mais MYSQL Donne 8.0500000000060...
+# 
+#
 # --------------------------------------------------------------------------------------------------------------------
 USE DonjonInc;
 # --------------------------------------------------------------------------------------------------------------------
@@ -110,6 +110,14 @@ GROUP BY Expedition_aventurier.id_expedition;
 
 
 # --------------------------------------------------------------------------------------------------------------------
+#test
+SELECT Salle.fonction, Ligne_coffre.quantite, Objet.masse FROM Ligne_coffre
+INNER JOIN Objet ON Objet.id_objet = Ligne_coffre.objet
+INNER JOIN Coffre_tresor ON Coffre_tresor.id_coffre_tresor = Ligne_coffre.coffre
+INNER JOIN Salle ON Coffre_tresor.salle = Salle.id_salle
+WHERE Salle.fonction = 'caserne des goblins';
+#test
+
 
 # -- requete h)
 SELECT sum(ligne_coffre.quantite*Objet.masse) FROM Ligne_coffre 
