@@ -1,12 +1,12 @@
 # Ceci est le script de sélection SQL pour le travail de session par Clément Provencher et Simon Fréchette
 # 
-# Ceci est la partie effectuée par Simon 
+# 
 #
-# auteur: Simon Fréchette
+# auteur: Simon Fréchette et Clément provencher
 # date: mars 2022
 # langage: SQL
 # 
-# il s'agit des requetes de a) à i)
+# 
 #
 # NOTE: enlever les rubriques encadrées par les commentaires "test" avant la remise
 #
@@ -143,9 +143,5 @@ SELECT salle_suivante_copie.fonction FROM Salle
 INNER JOIN Salle AS salle_suivante_copie ON Salle.salle_suivante = Salle_suivante_copie.id_salle
 WHERE Salle.fonction  = 'entree secrete - ouest';
 # -- fin requete i)
-
-# --------------------------------------------------------------------------------------------------------------------
-
-
 
 # --------------------------------------------------------------------------------------------------------------------

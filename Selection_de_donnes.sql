@@ -1,3 +1,6 @@
+
+
+
 # -- J
 SELECT sum(quantite * valeur) AS valeur_salle_objets FROM Expedition
 	INNER JOIN Visite_salle ON expedition = id_expedition
