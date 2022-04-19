@@ -1,26 +1,13 @@
 #-------------------------------------------------------------------------------------------------
-#Ceci est le script de création SQL pour les tables suivantes du travail de session "ressources monstrueuses": La partie 2
-#
-#Salle
-#Affectation_salle
-#Monstre
-#Responsabilite
-#Famille_monstre
-#
-#Humanoide
-#Mort_vivant
-#Elementaire
-#
-# Il s'agit des requêtes situées dans le haut du schéma, à l'horizontal.
+#Ceci est le script de création SQL du travail de session "ressources monstrueuses": La partie 2
+#Ce n'est qu'une modification de celui de la partie 1
 #
 # date de début: 3 mars 2022
 # date de modification: 19 avril 2022
 #
 #
-#Par: Clément Provencher (mise à jour) et Simon Fréchette (création initiale)
+#Par: Clément Provencher et Simon Fréchette
 # langage: SQL
-#
-#TODO: mettre les valeurs d'enum DONE 2022-03-07
 #
 #-------------------------------------------------------------------------------------------------
 
@@ -138,28 +125,6 @@ FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
 );
 # -- fin Elementaire
 
-#-------------------------------------------------------------------------------------------------
-#Ceci est la partie du travail effectuée par Clément, mise à jour pour la partie 2
-#
-#Coffre_tesor
-#Objet
-#Ligne_coffre
-#
-#Expedition
-#Visite_salle
-#
-#Aventurier
-#Expedition_avanturier
-#Inventaire_expedition - Nouveau
-#
-#Il s'agit des requêtes situées dans le bas, à droite
-#
-#date de début: 4 mars 2022
-#date de modification: 19 avril 2022
-#
-#Par: Clément Provencher
-#langage: SQL
-#
 #-------------------------------------------------------------------------------------------------
 
 # -- Coffre_tresor
