@@ -1,7 +1,3 @@
-# --
-USE DonjonInc;
-# --
-
 INSERT INTO Famille_monstre (id_famille, nom_famille, point_vie_maximal, degat_base) VALUES
 	(1, 'Zombie', 12, 3),
 	(2, 'Zombie de Troll', 36, 8),
@@ -308,3 +304,5 @@ INSERT INTO Ligne_coffre (coffre, objet, quantite) VALUES
 	(10, 24, 3),
 	(10, 27, 4),
 	(10, 21, 1);
+
+SELECT * FROM Elementaire;
