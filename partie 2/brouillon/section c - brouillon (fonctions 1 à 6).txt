@@ -64,7 +64,7 @@ DROP FUNCTION IF EXISTS trouver_responsable_salle;
 
 DELIMITER$$
 
-CREATE FUNCTION trouver_responsable_salle(fonction_salle VARCHAR(255),date_a_verif DATETIME) NON DETERMINISTIC READS SQL
+CREATE FUNCTION trouver_responsable_salle(fonction_salle VARCHAR(255),date_a_verif DATETIME) RETURNS INT NON DETERMINISTIC READS SQL DATA
 BEGIN
 	RETURN (SELECT Affectation_salle.monstre FROM Responsabilite
 			INNER JOIN Affectation_salle ON Responsabilite.id_responsabilite = Affectation_salle.responsabilite
@@ -94,7 +94,7 @@ DROP FUNCTION IF EXISTS plus_haut_niveau_expedition;
 
 DELIMITER $$
 
-CREATE FUNCTION plus_haut_niveau_expedition(nom_expedition VARCHAR(255)) NON DETERMINISTIC READS SQL
+CREATE FUNCTION plus_haut_niveau_expedition(nom_expedition VARCHAR(255)) NON DETERMINISTIC READS SQL DATA
 BEGIN
 	RETURN (SELECT Aventurier.id_aventurier FROM Aventurier
 			INNER JOIN Expedition_aventurier  ON Aventurier.id_aventurier = Expedition_aventurier.id_aventurier
@@ -106,6 +106,81 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
+# fonction 5
+
+#La fonction vérifie si au moins un monstre est en vie dans une salle donnée. Un monstre vivant possède un 
+#nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une salle qui 
+#n’est pas dans la BD ou qu’aucun monstre n’est affecté à la date demandée, une erreur est lancée.
+#PARAM id_salle INT
+#PARAM date_a_verif DATETIME
+
+DROP FUNCTION IF EXISTS verifier_vitalite_monstre_salle ;
+
+DELMITER $$
+
+CREATE FUNCTION verifier_vitalite_monstre_salle(id_salle INT,date_a_verif DATETIME) RETURNS INT NON DETERMINISTIC READS SQL DATA
+BEGIN
+	DECLARE _nb_monstres_en_vie_dans_salle;
+	DECLARE _salle_existe; # null si la salle n'existe pas.
+	
+	SET salle_existe = SELECT Salle.id_salle FROM Salle
+						WHERE Salle.id_salle = id_salle;
+						
+
+	IF _salle_existe IS NULL THEN 
+		SIGNAL SQLSTATE '1003' SET MESSAGE_TEXT = "La salle dont vous tentez de vérifier la vitalité est nulle"
+	END IF;
+
+# si aucun code d'esseur n'a été levé, le code se poursuit
+
+	SET _nb_monstres_en_vie_dans_salle = SELECT count(Monstre.id_monstre) FROM Monstre
+										INNER JOIN Affectation_salle ON Monstre.id_monstre = Affectation_salle.monstre
+										INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
+										WHERE Salle.id_salle = id_salle AND Monstre.point_vie > 0 AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
+										GROUP BY Salle.id_salle;
+	IF _nb_monstres_en_vie_dans_salle > 0 THEN
+		RETURN 1;
+	END IF;
+	RETURN 0;
+END$$
+
+DELIMITER ;
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
+# fonction 6
+#La fonction vérifie si un aventurier est en vie dans une expédition donnée. Un aventurier vivant 
+#possède un nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une 
+#expédition qui n’est pas dans la BD, une erreur est lancée.
+# PARAM id_expedition INT
+
+
+DROP FUNCTION IF EXISTS verifier_vitalite_aventurier_salle;
+
+DELIMITER $$
+
+CREATE FUNCTION verifier_vitalite_aventurier_salle(id_expedition INT)
+BEGIN
+	DECLARE _nombre_aventuriers_vivant;
+	
+	SET _nombre_aventuriers_vivant = SELECT count(Aventurier.id_aventurier) FROM Aventurier
+									INNER JOIN 	Expedition_aventurier ON Aventurier.id_aventurier = Expedition_aventurier.id_aventurier
+									INNER JOIN Expedition ON Expedition_aventurier.id_expedition = Expedition.id_expedition
+									WHERE Expedition.id_expedition = id_expedition AND Aventurier.point_vie > 0
+									GROUP BY Expedition.id_expedition;
+END$$
+
+DELIMITER ;
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------------------------------------------------------------
 
