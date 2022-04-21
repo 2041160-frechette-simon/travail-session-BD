@@ -3,7 +3,7 @@
 #Ce n'est qu'une modification de celui de la partie 1
 #
 # date de début: 3 mars 2022
-# date de modification: 19 avril 2022
+# date de modification: 21 avril 2022
 #
 #
 #Par: Clément Provencher et Simon Fréchette
@@ -27,7 +27,8 @@ CREATE TABLE Salle(
     largeur FLOAT NOT NULL,
     salle_suivante INT UNIQUE,
     
-    FOREIGN KEY (salle_suivante) REFERENCES Salle(id_salle)
+    FOREIGN KEY (salle_suivante) REFERENCES Salle(id_salle),
+    CONSTRAINT fonction_min_5_chars CHECK (length(fonction) >= 5)
 );
 # -- fin Salle
 
@@ -38,7 +39,10 @@ CREATE TABLE Famille_monstre(
 id_famille INT PRIMARY KEY AUTO_INCREMENT,
 nom_famille VARCHAR(255) UNIQUE NOT NULL,
 point_vie_maximal INT NOT NULL,
-degat_base INT NOT NULL
+degat_base INT NOT NULL,
+
+CONSTRAINT vie_max_superieure_zero CHECK (point_vie_maximal > 0),
+CONSTRAINT degat_base_superieur_zero CHECK (degat_base > 0)
 );
 # -- fin Famille_monstre
 
@@ -65,7 +69,9 @@ FOREIGN KEY (id_famille) REFERENCES Famille_monstre(id_famille)
 CREATE TABLE Responsabilite(
 id_responsabilite INT PRIMARY KEY AUTO_INCREMENT,
 titre VARCHAR(255) NOT NULL,
-niveau_responsabilite INT NOT NULL
+niveau_responsabilite INT NOT NULL,
+
+CONSTRAINT niveau_responsabilite_positif CHECK (niveau_responsabilite >= 0)
 );
 # -- fin Responsabilite
 
@@ -95,7 +101,8 @@ famille INT NOT NULL,
 arme VARCHAR(255),
 intelligence INT NOT NULL,
 
-FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
+FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille),
+CONSTRAINT intelligence_positive CHECK (intelligence >= 0)
 );
 # -- fin Humanoide
 
@@ -108,7 +115,9 @@ famille INT NOT NULL,
 vulnerable_soleil TINYINT NOT NULL,
 infectieux TINYINT NOT NULL,
 
-FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
+FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille),
+CONSTRAINT vulnerable_soleil_bool CHECK (vulnerable_soleil BETWEEN 0 AND 1),
+CONSTRAINT infectieux_bool CHECK (infectieux BETWEEN 0 AND 1)
 );
 # -- fin Mort_vivant
 
@@ -144,7 +153,10 @@ CREATE TABLE Objet(
 	id_objet INTEGER AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(255) UNIQUE NOT NULL,
     valeur INT NOT NULL,
-    masse FLOAT NOT NULL
+    masse FLOAT NOT NULL,
+    
+    CONSTRAINT masse_superieure_zero CHECK (masse > 0),
+    CONSTRAINT valeur_superieure_zero CHECK (valeur > 0)
     );
 # -- fin Objet
 
@@ -158,7 +170,8 @@ CREATE TABLE Ligne_coffre(
     
     PRIMARY KEY(coffre, objet),
     FOREIGN KEY (coffre) REFERENCES Coffre_tresor(id_coffre_tresor),
-    FOREIGN KEY (objet) REFERENCES Objet(id_objet)
+    FOREIGN KEY (objet) REFERENCES Objet(id_objet),
+    CONSTRAINT quantite_superieure_zero CHECK (quantite > 0)
     );
 # -- fin Objet
 
@@ -197,7 +210,9 @@ CREATE TABLE Aventurier(
     classe VARCHAR(255) NOT NULL,
     niveau TINYINT NOT NULL,
     point_vie INTEGER NOT NULL,
-    attaque INTEGER NOT NULL
+    attaque INTEGER NOT NULL,
+    
+    CONSTRAINT niveau_superieur_zero CHECK (niveau > 0)
     );
 # -- fin Aventurier
 
@@ -224,7 +239,8 @@ CREATE TABLE Inventaire_expedition(
     
     PRIMARY KEY(id_expedition, objet), 
     FOREIGN KEY (id_expedition) REFERENCES Expedition(id_expedition),
-    FOREIGN KEY (objet) REFERENCES Objet(id_objet)
+    FOREIGN KEY (objet) REFERENCES Objet(id_objet),
+    CONSTRAINT quantite_superieure_zero CHECK (quantite > 0)
     );
 # -- fin Inventaire_expedition
 
