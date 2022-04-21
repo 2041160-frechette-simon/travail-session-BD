@@ -171,7 +171,7 @@ CREATE TABLE Ligne_coffre(
     PRIMARY KEY(coffre, objet),
     FOREIGN KEY (coffre) REFERENCES Coffre_tresor(id_coffre_tresor),
     FOREIGN KEY (objet) REFERENCES Objet(id_objet),
-    CONSTRAINT quantite_superieure_zero CHECK (quantite > 0)
+    CONSTRAINT ligne_quantite_superieure_zero CHECK (quantite > 0)
     );
 # -- fin Objet
 
@@ -240,7 +240,7 @@ CREATE TABLE Inventaire_expedition(
     PRIMARY KEY(id_expedition, objet), 
     FOREIGN KEY (id_expedition) REFERENCES Expedition(id_expedition),
     FOREIGN KEY (objet) REFERENCES Objet(id_objet),
-    CONSTRAINT quantite_superieure_zero CHECK (quantite > 0)
+    CONSTRAINT inventaire_quantite_superieure_zero CHECK (quantite > 0)
     );
 # -- fin Inventaire_expedition
 
