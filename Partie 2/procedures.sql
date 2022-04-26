@@ -80,7 +80,7 @@ BEGIN
                             
 	IF(_id_mage IS NOT NULL AND _id_humanoide IS NOT NULL)
     THEN 
-		affaiblissement_monstres(_id_salle, _moment_visite)
+		CALL affaiblissement_monstres (_id_salle, _moment_visite);
 	END IF;
 END $$
 DELIMITER ;
