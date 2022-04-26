@@ -47,3 +47,41 @@ BEGIN
     END IF;
 END $$
 DELIMITER ;
+
+/**
+ *Procédure de malédiction de débilitation
+ *Si un mage attaque un monstre humanoïde, il le maudit
+ *les mages comportent "mage", "magicien" ou "enchanteur"
+ *
+ *@param _id_salle IN
+ *@param _id_expedition IN
+ */
+DELIMITER $$
+CREATE PROCEDURE Malediction_affaiblissement(IN _id_salle INT, IN _id_expedition INT)
+BEGIN
+	DECLARE _id_mage INT;
+    DECLARE _id_humanoide INT;
+    DECLARE _moment_visite DATETIME;
+    SET _id_mage = (SELECT id_aventurier FROM Expedition
+						NATURAL JOIN Expedition_aventurier
+                        NATURAL JOIN Aventurier
+                        WHERE id_expedition = _id_expedition
+                        AND classe RLIKE '(?i)^mage$|^magicien(ne)?$|^enchanteure?$'
+                        LIMIT 1);
+	SET _id_humanoide = (SELECT id_humanoide FROM Salle
+							INNER JOIN Affectation_salle ON salle = id_salle
+                            INNER JOIN Monstre ON id_monstre = monstre
+                            INNER JOIN Humanoide ON id_famille = famille
+                            WHERE salle = _id_salle
+                            LIMIT 1);
+	SET _moment_visite = (SELECT moment_visite FROM Visite_salle
+							WHERE salle = _id_salle
+                            AND expedition = _id_expedition);
+                            
+	IF(_id_mage IS NOT NULL AND _id_humanoide IS NOT NULL)
+    THEN 
+		affaiblissement_monstres(_id_salle, _moment_visite)
+	END IF;
+END $$
+DELIMITER ;
+
