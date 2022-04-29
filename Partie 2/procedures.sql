@@ -85,3 +85,95 @@ BEGIN
 END $$
 DELIMITER ;
 
+/**
+ *procédure de combat
+ *Les combats se déroulent comme suit : 
+ *- Les aventuriers attaquent 
+ *- Les magiciens lancent leur malédiction
+ *- Les montres attaquent
+ *
+ *@param _id_salle IN
+ *@param _id_expedition IN
+ */
+ DELIMITER $$
+CREATE PROCEDURE Combat(IN _id_salle INT, IN_id_expedition INT)
+BEGIN
+	DECLARE _moment_visite DATETIME;
+    DECLARE _degats_aventuriers INT;
+    DECLARE _degats_monstres INT;
+    DECLARE _monstres_en_vie INT;
+    DECLARE _aventiuriers_en_vie INT;
+    SET _moment_visite = (SELECT moment_visite FROM Visite_salle
+							WHERE salle = _id_salle
+                            AND expedition = _id_expedition);
+	#Tant que le tous les monstres ou tous les aventuriers sont morts, combat
+	WHILE verifier_vitalite_aventurier() = 1 AND verifier_vitalite_monstre_salle(_id_salle, _moment_visite) = 1
+    DO
+		SET _degats_aventuriers = (SELECT sum(attaque) FROM Expedition
+									NATURAL JOIN Expedition_aventurier
+                                    NATURAL JOIN Aventurier
+                                    WHERE point_vie > 0
+                                    GROUP BY id_expedition);
+		SET _degats_monstres = (SELECT sum(attaque) FROM Salle
+									INNER JOIN Affectation_salle ON salle = id_salle
+                                    INNER JOIN Monstre ON monstre = id_monstre
+                                    WHERE point_vie > 0
+                                    AND debut_affectation <= _moment_visite
+                                    AND fin_affectation <= _moment_visite
+                                    GROUP BY Salle);
+                                    
+		SET _monstres_en_vie = (SELECT count(id_monstre) FROM Monstre WHERE point_vie > 0);
+        SET _aventuriers_en_vie = (SELECT count(id_aventurier) FROM Aventurier WHERE point_vie > 0);
+        
+		CALL infliger_dommage_monstre(_id_salle, _moment_visite, _degats_aventuriers / _montres_en_vie);
+        CALL Malediction_affaiblissement(_id_salle, _id_expedition);
+        CALL infliger_dommage_aventurier(_id_expedition, _degats_monstres / _aventuriers_en_vie);
+    END WHILE;
+END $$
+DELIMITER ;
+
+/**
+*Procédure pour l'embauche
+*ajoute un nouvel employé au système
+*
+*@param _nom IN
+*@param _code_employe IN
+*@param _num_assurance_mal IN
+*@param _nom_famille IN
+*/
+DELIMITER $$
+CREATE PROCEDURE Embauche(IN _nom VARCHAR(255), IN _code_employe CHAR(4), IN _num_assurance_mal BLOB, IN _nom_famille VARCHAR(255))
+BEGIN
+	DECLARE _id_famille INT;
+    DECLARE _point_vie INT;
+    DECLARE _attaque INT;
+    
+	#variables gestion erreur
+	DECLARE _code CHAR(5);                      
+    DECLARE _message TEXT; 
+    
+    #gestion d'erreur
+	DECLARE EXIT HANDLER FOR 03001
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1            
+				_code = RETURNED_SQLSTATE,          
+				_message = MESSAGE_TEXT;
+			SELECT _code, _message;
+    END;
+    
+    SET _id_famille = (SELECT id_famille FROM Famille_monstre WHERE nom_famille = _nom_famille);
+    
+    IF(_id_famille IS NULL)
+    THEN
+		SIGNAL SQLSTATE '03001' SET MESSAGE_TEXT = 'la famille de monstre fournie n\'existe pas'; 
+	END IF;
+    
+    SET _point_vie = (SELECT point_vie FROM Famille_monstre WHERE id_famille = _id_famille);
+    SET _attaque = (SELECT attaque FROM Famille_monstre WHERE id_famille = _id_famille);
+    
+    INSERT INTO Monstre(nom, code_employe, point_vie, attaque, numero_assurance_maladie, id_famille, experience)
+     VALUES(_nom, _code_employe, _point_vie, _attaque, _num_assurance_mal, _id_famille, 0);
+END $$
+DELIMITER ;
+	
+
