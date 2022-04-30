@@ -4,90 +4,81 @@
 # langage : SQL 
 # date de début : 19 avril 2022
 
-# TODO  vérifier les codes d'erreur
+USE DonjonInc;
 
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
-# fonction #1
-
-
-# fonction qui crypte et décrypte en utilisant le mot de passe.
-# PARAM chaine_a_crypter TEXT
-# RETURN valeur cryptée BLOB
-
+# fonction 1
+/*
+ fonction qui crypte en utilisant le mot de passe mortauxheros.
+ @param chaine_a_crypter TEXT
+ @return valeur cryptée BLOB
+*/
 DROP FUNCTION IF EXISTS crypter_data;
-
 DELIMITER $$
-
 CREATE FUNCTION crypter_data(chaine_a_crypter TEXT) RETURNS BLOB DETERMINISTIC CONTAINS SQL
 BEGIN
 	RETURN AES_ENCRYPT(chaine_a_crypter, UNHEX(SHA2('mortauxheros',256)));
 END$$
-
 DELIMITER ;
-
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
 # fonction 2
-
-# Cette fonction décrypte un contenu crypté en utilisant la clé de cryptage définie ci-dessus. Elle 
-# retourne le texte clair prêt à être lu par un être humain.
-# PARAM chaine_a_decrypter BLOB
-# RETURN valeur en clair TEXT
-
+/*
+Cette fonction décrypte un contenu crypté en utilisant la clé de cryptage définie ci-dessus. Elle 
+retourne le texte clair prêt à être lu par un être humain.
+@param chaine_a_decrypter BLOB
+@return valeur en clair TEXT
+*/
 DROP FUNCTION IF EXISTS decrypter_data;
-
 DELIMITER $$
-
 CREATE FUNCTION decrypter_data(chaine_a_decrypter BLOB) RETURNS TEXT DETERMINISTIC CONTAINS SQL
 BEGIN
 	RETURN CAST(AES_DECRYPT(chane_a_decrypter, UNHEX(SHA2('mortauxheros', 256))) AS CHAR);
 END$$
-
 DELIMITER ;
-
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
-
 # fonction 3
-
-#Cette fonction accepte une fonction d’une salle et un objet de type DATETIME et retourne l’identifiant 
-#du monstre qui en est responsable (plus haut niveau de responsabilité).
-# PARAM fonction_salle VARCHAR(255)
-# PARAM  date_a_verif DATETIME 
-# RETURN id du responsable
-
-
-
+/*
+Cette fonction accepte une fonction d’une salle et un objet de type DATETIME et retourne l’identifiant 
+du monstre qui en est responsable (plus haut niveau de responsabilité).
+@param fonction_salle VARCHAR(255)
+@param  date_a_verif DATETIME 
+@return id du responsable
+*/
 DROP FUNCTION IF EXISTS trouver_responsable_salle;
-
 DELIMITER $$
-
 CREATE FUNCTION trouver_responsable_salle(fonction_salle VARCHAR(255),date_a_verif DATETIME) RETURNS INT NOT DETERMINISTIC READS SQL DATA
 BEGIN
-	RETURN (SELECT Affectation_salle.monstre FROM Responsabilite
+	DECLARE _id_monstre_responsable INT;
+    SET _id_monstre_responsable = (SELECT Affectation_salle.monstre FROM Responsabilite
 			INNER JOIN Affectation_salle ON Responsabilite.id_responsabilite = Affectation_salle.responsabilite
 			INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
 			WHERE Salle.fonction = fonction_salle 
 			AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
 			ORDER BY Responsabilite.niveau_responsabilite DESC
 			LIMIT 1);
+	IF _id_monstre_responsable IS NULL THEN
+		SIGNAL SQLSTATE '01001'
+			SET MESSAGE_TEXT = "Il n'y a aucune affectation à cette salle pour le moment.";
+            RETURN 0;
+	END IF;
+	RETURN  _id_monstre_responsable;
 END$$
-
 DELIMITER ; 
-
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
-
 #fonction 4
-
-#La fonction retourne l’aventurier qui possède le plus haut niveau dans l’expédition.
-# PARAM nom_expedition VARCHAR(255)
-# RETURN id de l'aventurier de plus haut niveau.
+/*
+La fonction retourne l’aventurier qui possède le plus haut niveau dans l’expédition.
+@param nom_expedition VARCHAR(255)
+@return id de l'aventurier de plus haut niveau.
+*/
 DROP FUNCTION IF EXISTS plus_haut_niveau_expedition;
 DELIMITER $$
 CREATE FUNCTION plus_haut_niveau_expedition(nom_expedition VARCHAR(255)) RETURNS INT NOT DETERMINISTIC READS SQL DATA
@@ -100,21 +91,19 @@ BEGIN
 			LIMIT 1
 	);
 END $$
-
 DELIMITER ;
-
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
-
 # fonction 5
-
-#La fonction vérifie si au moins un monstre est en vie dans une salle donnée. Un monstre vivant possède un 
-#nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une salle qui 
-#n’est pas dans la BD ou qu’aucun monstre n’est affecté à la date demandée, une erreur est lancée.
-#PARAM id_salle INT
-#PARAM date_a_verif DATETIME
-#return 0 si tous les monstres sont morts, 1 sinon.
+/*
+La fonction vérifie si au moins un monstre est en vie dans une salle donnée. Un monstre vivant possède un 
+nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une salle qui 
+n’est pas dans la BD ou qu’aucun monstre n’est affecté à la date demandée, une erreur est lancée.
+@param id_salle INT
+@param date_a_verif DATETIME
+@return 0 si tous les monstres sont morts, 1 sinon.
+*/
 DROP FUNCTION IF EXISTS verifier_vitalite_monstre_salle ;
 DELIMITER $$
 CREATE FUNCTION verifier_vitalite_monstre_salle(id_salle INT,date_a_verif DATETIME) RETURNS INT NOT DETERMINISTIC READS SQL DATA
@@ -151,22 +140,21 @@ BEGIN
 	END IF;
 	RETURN 0;
 END$$
-
 DELIMITER ;
-
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------------
-
 # fonction 6
-#La fonction vérifie si un aventurier est en vie dans une expédition donnée. Un aventurier vivant 
-#possède un nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une 
-#expédition qui n’est pas dans la BD, une erreur est lancée.
-# PARAM id_expedition INT
-#return 0 si tous les aventuriers sont morts, 1 sinon.
-DROP FUNCTION IF EXISTS verifier_vitalite_aventurier_salle;
+/*
+La fonction vérifie si un aventurier est en vie dans une expédition donnée. Un aventurier vivant 
+possède un nombre de points de vie strictement plus grand que 0. Si la vérification s’effectue sur une 
+expédition qui n’est pas dans la BD, une erreur est lancée.
+@param id_expedition INT
+@return 0 si tous les aventuriers sont morts, 1 sinon.
+*/
+DROP FUNCTION IF EXISTS verifier_vitalite_aventurier_expedition;
 DELIMITER $$
-CREATE FUNCTION verifier_vitalite_aventurier_salle(id_expedition INT) RETURNS INT NOT DETERMINISTIC READS SQL DATA
+CREATE FUNCTION verifier_vitalite_aventurier_expedition(id_expedition INT) RETURNS INT NOT DETERMINISTIC READS SQL DATA
 BEGIN
 	DECLARE _nombre_aventuriers_vivant INT;
     DECLARE _expedition_existe INT; # null si elle n'existe pas, 1 sinon.
@@ -195,9 +183,5 @@ BEGIN
 	RETURN 0;
 END$$
 DELIMITER ;
-
-# ---------------------------------------------------------------------------------------------------------------------------
-
-
 # ---------------------------------------------------------------------------------------------------------------------------
 

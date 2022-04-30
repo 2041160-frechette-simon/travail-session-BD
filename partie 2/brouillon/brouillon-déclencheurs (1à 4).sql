@@ -7,6 +7,8 @@
 
 # to do: vérifier les codes d'erreurs
 
+USE DonjonInc;
+
 
 # ------------------------------------------------------------------------------------------------------
 # fonction de soutien (déclencheur 2)
@@ -26,7 +28,7 @@ DELIMITER $$
  * @param _fin_affectaion 			fin de la période pendant laquelle vérifier s'il y a des élémentaires opposés
  * @return 	1 s'il y a un conflit entre deux types d'élémentaires, 0 sinon
  */
-CREATE FUNCTION elements_opposes_piece (_id_salle INT, _debut_affectaion DATETIME, _fin_affectation DATETIME) RETURNS TINYINT READS SQL DATA
+CREATE FUNCTION elements_opposes_piece (_id_salle INT, _debut_affectation DATETIME, _fin_affectation DATETIME) RETURNS TINYINT READS SQL DATA
 BEGIN
 	DECLARE _nombre_elementaires_feu INTEGER;
     DECLARE _nombre_elementaires_eau INTEGER;
@@ -39,7 +41,7 @@ BEGIN
             WHERE salle = _id_salle 
 				AND element = 'feu'
 				AND ( -- Vérifie l'intersection entre deux intervalles de date
-					_debut_affectaion BETWEEN debut_affectation AND fin_affectation
+					_debut_affectation BETWEEN debut_affectation AND fin_affectation
 					OR _fin_affectation BETWEEN debut_affectation AND fin_affectation
 					OR (_debut_affectation < debut_affectation AND _fin_affectation > fin_affectation)
 				)
@@ -53,7 +55,7 @@ BEGIN
             WHERE salle = _id_salle 
                 AND element = 'eau'
 				AND ( -- Vérifie l'intersection entre deux intervalles de date
-					_debut_affectaion BETWEEN debut_affectation AND fin_affectation
+					_debut_affectation BETWEEN debut_affectation AND fin_affectation
 					OR _fin_affectation BETWEEN debut_affectation AND fin_affectation
 					OR (_debut_affectation < debut_affectation AND _fin_affectation > fin_affectation)
 				)
@@ -74,32 +76,38 @@ DELIMITER ;
  * Fonction qui vérifie qu'un seul coffre ne contient pas plus de 15 objets ou 300kg de masse totale
  * @param id_coffre_a_verif == le coffre à vérifier 
  * @return 1 si il y a une surcharge, 0 sinon
+ * Si il y a une surcharge, une exception est lançée. Cette dernière interrompt le processus et rensigne l'utilisateur de l'erreur
+ *(Supérieur à 300 de masse ou supérieur à 15 objets).
+ * L'utilisateur doit être mis au courant de laquelle des deux contraintes n'est pas respectée.
 */
 DROP FUNCTION IF EXISTS verifier_surcharge_coffre;
 DELIMITER $$
 CREATE FUNCTION verifier_surcharge_coffre(id_coffre_a_verif INT) RETURNS TINYINT READS SQL DATA
-BEGIN
-	DECLARE masse_totale FLOAT;
-    DECLARE nb_obj INT;
-    SET nb_obj = (SELECT count(Objet.id_objet) FROM Objet 
-				INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
-				INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre.id_coffre_tresor
-                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
-                GROUP BY Coffre_tresor.id_coffre_tresor);
-	IF nb_obj > 15 THEN
-		RETURN 1;
+BEGIN    
+	DECLARE _masse_totale FLOAT;
+    DECLARE _nb_obj INT;
+    SET _nb_obj = (SELECT sum(Ligne_coffre.quantite) FROM Ligne_coffre
+				INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
+                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+
+	
+	IF _nb_obj > 15 THEN
+		SIGNAL SQLSTATE '02001'
+			SET MESSAGE_TEXT = "le coffre auquel vous tentez d'ajouter un objet contient déjà 15 objets.";
 	END IF;
     
-	SET masse_totale = (SELECT sum(Objet.masse * Ligne_coffre.quantite) FROM Objet
+	SET _masse_totale = (SELECT sum(Objet.masse * Ligne_coffre.quantite) FROM Objet
 						INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
-						INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre.id_coffre_tresor
-                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
-                        GROUP BY Coffre_tresor.id_coffre_tresor);
-	IF masse_totale > 300 THEN 
-		RETURN 1;
-	END IF;
-    RETURN 0;
+						INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
+                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+
 	
+	IF _masse_totale > 300 THEN 
+		SIGNAL SQLSTATE '02002'
+			SET MESSAGE_TEXT = "En ajoutant un objet dans ce coffre, vous excédez la capacité totale de ce dernier (300kg)";
+	END IF;
+	
+    RETURN 1;
 END$$
 
 DELIMITER ;
@@ -108,29 +116,24 @@ DELIMITER ;
 # déclencheur 1
 
 /*
-* déclencheur qui vérifie après l'insertion si l'objt ajouté crée une surcharge dans le coffre dans lequel il est.
+* déclencheur qui vérifie après l'insertion si l'objet ajouté crée une surcharge dans le coffre dans lequel il est.
+* @Dependecies: verifier_surcharge_coffre()
+* @Dependencies: Ligne_coffre, Coffre_tresor, Objet
 */
 DROP TRIGGER IF EXISTS coffre_surcharge;
 DELIMITER $$
-CREATE TRIGGER coffre_surcharge AFTER INSERT ON Objet FOR EACH ROW
+CREATE TRIGGER coffre_surcharge BEFORE INSERT ON Ligne_coffre FOR EACH ROW
 BEGIN
-	DECLARE id_coffre_a_verif INT;
+	DECLARE _id_coffre_a_verif INT;
+    DECLARE _etat_surcharge INT;
     
-    DECLARE CONTINUE HANDLER FOR 02001
-	BEGIN 
-	# il s'agit de l'avertissement levé en cas de surcharge. On envoit simplement un message à l'écran
-	SET MESSAGE_TEXT = CONCAT(MESSAGE_TEXT," (ID coffre : ",id_coffre_a_verif,")");
-	END;
-    
-	SET id_coffre_a_verif = (SELECT Coffre_tresor.id_coffre_tresor FROM Objet
+        
+	SET _id_coffre_a_verif = (SELECT Coffre_tresor.id_coffre_tresor FROM Objet
 							INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
-							INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre.id_coffre_tresor
-                            WHERE Objet.id_objet = NEW.id_objet);
+							INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
+                            WHERE Ligne_coffre.objet = NEW.objet AND Ligne_coffre.coffre = NEW.coffre);
 	
-	IF verifier_surcharge_coffre(id_coffre_a_verif) =  1 THEN 
-		SIGNAL SQLSTATE '02001'
-        SET MESSAGE_TEXT = "Le coffre auquel vous venez d'Ajouter un objet est en surcharge";
-	END IF;
+	SET _etat_surcharge = verifier_surcharge_coffre(_id_coffre_a_verif); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	
 
 DELIMITER ;
@@ -140,47 +143,50 @@ DELIMITER ;
 
 DROP TRIGGER IF EXISTS elements_opposes_dans_piece;
 /*
-* déclencheur qui vérifie si au moment d'ajouter un monstre dans un salle (affectation_salle) il y a deux éléments opposés dans la salle concernée
+* déclencheur qui vérifie si au moment d'ajouter un monstre dans un salle (affectation_salle) il y a deux éléments opposés dans la salle concernée.
+*@dependencies: elements_opposes_piece()
+*@dependencies: Elementaire, Monstre, Affectation_salle
 */
 DElIMITER $$
 CREATE TRIGGER elements_opposes_dans_piece AFTER INSERT ON Affectation_salle FOR EACH ROW
 BEGIN
-	DECLARE presence_elements_opposes TINYINT;
-    DECLARE CONTINUE HANDLER FOR 02001
-    BEGIN
-		SET MESSAGE_TEXT = concat(MESSAGE_TEXT, " (Pièce ID: ",NEW.salle," Début: ",NEW.debut_affectation," Fin: ",NEW.fin_affectation,")");
-    END;
+	DECLARE _presence_elements_opposes TINYINT;
+    DECLARE _message_exception VARCHAR(255);
     
-    SET presence_elements_opposes = elements_opposes_piece(NEW.salle, NEW.debut_affectation, NEW.fin_affectation);
-    IF presence_elements_opposes > 0 THEN
-		SIGNAL SQLSTATE '02001';
-        SET MESSAGE_TEXT = "Il y a deux élémentaires opposés dans la même pièce !";
+    SET _message_exception = "Il y a deux éléments dans la même pièce !";
+    SET _message_exception = CONCAT(_message_exception," (Pièce ID: ",NEW.salle," Début: ",NEW.debut_affectation," Fin: ",NEW.fin_affectation,")");
+    SET _presence_elements_opposes = elements_opposes_piece(NEW.salle, NEW.debut_affectation, NEW.fin_affectation);
+    
+    # Si deux éléments opposés sont dans la même pièce, une exception de la classe avertissement est lancée:
+    IF _presence_elements_opposes > 0 THEN
+		SIGNAL SQLSTATE '01001'
+			SET MESSAGE_TEXT = _message_exception;
     END IF;
 END$$
 DELIMITER ;
 
 # ------------------------------------------------------------------------------------------------------
 #déclencheur 3
-
 /*
 * déclencheur qui devance la fin de toutes les affectations de salle reliées à un monstre mort à la date actuelle.
+* @Dependencies: Monstre, Affectation_salle
 */
-
 DROP TRIGGER IF EXISTS re_affectation_mortalite;
+
 DELIMITER $$
 CREATE TRIGGER re_affectation_mortalite AFTER UPDATE ON Monstre FOR EACH ROW
 BEGIN
-	DECLARE id_affectation_salle_monstre INT;
-    DECLARE date_actuelle DATETIME;
-    SET date_actuelle = GETDATE();
-    SET  id_affectation_salle_monstre = (SELECT Affectation_salle.id_affectation FROM Affectation_salle
+	DECLARE _id_affectation_salle_monstre INT;
+    DECLARE _date_actuelle DATETIME;
+    SET _date_actuelle = CURRENT_TIMESTAMP(); # pour avoir une valeur de type DATETIME correspondant à la date et à l'heure actuelle.
+    SET  _id_affectation_salle_monstre = (SELECT Affectation_salle.id_affectation FROM Affectation_salle
 										WHERE Affectation_salle.monstre = OLD.id_monstre
     );
     
 	IF NEW.point_vie <= 0 THEN
 		UPDATE Affectation_salle
-        SET fin_affectation = date_actuelle
-        WHERE id_affectation = id_affectation_salle_monstre;
+        SET fin_affectation = _date_actuelle
+        WHERE id_affectation = _id_affectation_salle_monstre;
     END IF;
 END$$
 DELIMITER ;
@@ -189,16 +195,15 @@ DELIMITER ;
 #déclencheur 4
 /*
 * Déclencheur qui transforme le code secret entré en clair dans un nouveau coffre en une valeur hashée.
+*@dependencies: Coffre_tresor
 */
 DROP TRIGGER IF EXISTS hash_coffre_tresor;
 DELIMITER $$
-CREATE TRIGGER hash_coffre_tresor AFTER INSERT ON Coffre_tresor FOR EACH ROW
+CREATE TRIGGER hash_coffre_tresor BEFORE INSERT ON Coffre_tresor FOR EACH ROW
 BEGIN
-	DECLARE Val_hash CHAR(64);
-    SET Val_hash = SHA2(NEW.code_secret, 256);
-    UPDATE Coffre_tresor 
-    SET Coffre_tresor.code_secret = val_hash
-    WHERE Coffre_tresor.id_coffre_tresor = NEW.id_coffre_tresor;
+	DECLARE _val_hash CHAR(64);
+    SET _val_hash = SHA2(NEW.code_secret, 256);
+    SET NEW.code_secret = _val_hash;
 END$$
 DELIMITER ;
 

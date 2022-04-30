@@ -3,7 +3,7 @@
 #Ce n'est qu'une modification de celui de la partie 1
 #
 # date de début: 3 mars 2022
-# date de modification: 21 avril 2022
+# date de modification: 21 avril 2022 (partie 2)
 #
 #
 #Par: Clément Provencher et Simon Fréchette
