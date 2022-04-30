@@ -7,6 +7,7 @@
 #TODO : vérifier gestion d'erreurs / exceptions fonction 6
 #TODO : vérifier gestion d'erreurs / exceptions fonction 5
 #TODO : vérifier gestion d'erreurs / exceptions fonction 3
+#TODO : changer le script d'insertion de données pour inclure le cryptage de tous les numéros d'assurance maladie
 
 USE DonjonInc;
 # ---------------------------------------------------------------------------------------------------------------------------
