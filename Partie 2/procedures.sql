@@ -20,13 +20,20 @@
 DELIMITER $$
 CREATE PROCEDURE Intimidation(IN _id_salle INT, IN _id_expedition INT, OUT _intimidation_reussi TINYINT)
 BEGIN
+	DECLARE _moment_visite DATETIME;
 	DECLARE _monstre_haut_xp INT;
     DECLARE _aventurier_bas_niveau INT;
     DECLARE _difference_niveau_xp INT;
+    SET _moment_visite = (SELECT moment_visite FROM Visite_salle WHERE
+							expedition = _id_expedition AND
+                            salle = _id_salle
+		);
     SET _monstre_haut_xp = (
 		SELECT id_monstre FROM Affectation_salle
 			INNER JOIN Monstre ON monstre = id_monstre
-			WHERE salle = _id_salle
+			WHERE salle = _id_salle AND
+            debut_affectation < _moment_visite AND
+            fin_affectation > _moment_visite
 			ORDER BY experience DESC
 			LIMIT 1
         );
