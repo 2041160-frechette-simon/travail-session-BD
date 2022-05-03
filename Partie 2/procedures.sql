@@ -4,7 +4,7 @@
 #Fait par Clément Provencher
 #
 #créé le 21/04/2022
-#modifié le 21/04/2022
+#modifié le 03/05/2022
 #
 #--------------------------------------------------------------
 
@@ -133,6 +133,57 @@ END $$
 DELIMITER ;
 
 /**
+ *procédure de visite salle
+ *D’abord les aventuriers tentent d’intimider les monstres. Si l’intimidation réussit, alors les aventuriers pillent la salle
+ *Si l’intimidation ne réussit pas, alors un combat est engagé. 
+ *Si les aventuriers sont victorieux, alors ils pillent la salle.
+ *
+ *@param _id_salle IN
+ *@param _id_expedition IN
+ *@param _moment_visite IN
+ */
+DELIMITER $$
+CREATE PROCEDURE Visite_salle(IN _id_salle INT, IN _id_expedition INT, IN _moment_visite DATETIME)
+BEGIN
+	DECLARE _intimidation_reussi TINYINT;
+    DECLARE _ligne_visite_salle_existante INT;
+    
+    #variables gestion erreur
+	DECLARE _code CHAR(5);                      
+    DECLARE _message TEXT; 
+    
+    #gestion d'erreur
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1            
+				_code = RETURNED_SQLSTATE,          
+				_message = MESSAGE_TEXT;
+			SELECT _code, _message;
+		ROLLBACK;
+    END;
+    
+    START TRANSACTION;
+    INSERT INTO Visite_salle(salle, expedition, moment_visite)
+		VALUES(_id_salle, _id_expedition, _moment_visite);
+	COMMIT; # si une erreur était levée, le code se serait arrèté
+    
+	CALL Intimidation(_id_salle, _id_expedition, _intimidation_reussi);
+    
+    IF(_intimidation_reussi = 1)
+    THEN
+		CALL Piller_salle(_id_salle, _id_expedition);
+	ELSE
+		CALL Combat(_id_salle, _id_expedition);
+        
+        #si les aventuriers sont victorieux
+        IF(verifier_vitalite_aventurier() = 1)
+        THEN
+			CALL Piller_salle(_id_salle, _id_expedition);
+        END IF;
+    END IF;
+END $$
+DELIMITER ;
+/**
 *Procédure pour l'embauche
 *ajoute un nouvel employé au système
 *
@@ -153,27 +204,66 @@ BEGIN
     DECLARE _message TEXT; 
     
     #gestion d'erreur
-	DECLARE EXIT HANDLER FOR 03001
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
 		GET DIAGNOSTICS CONDITION 1            
 				_code = RETURNED_SQLSTATE,          
 				_message = MESSAGE_TEXT;
 			SELECT _code, _message;
+		ROLLBACK;
     END;
     
     SET _id_famille = (SELECT id_famille FROM Famille_monstre WHERE nom_famille = _nom_famille);
     
-    IF(_id_famille IS NULL)
-    THEN
-		SIGNAL SQLSTATE '03001' SET MESSAGE_TEXT = 'la famille de monstre fournie n\'existe pas'; 
-	END IF;
-    
     SET _point_vie = (SELECT point_vie FROM Famille_monstre WHERE id_famille = _id_famille);
     SET _attaque = (SELECT attaque FROM Famille_monstre WHERE id_famille = _id_famille);
     
+    START TRANSACTION;
     INSERT INTO Monstre(nom, code_employe, point_vie, attaque, numero_assurance_maladie, id_famille, experience)
      VALUES(_nom, _code_employe, _point_vie, _attaque, _num_assurance_mal, _id_famille, 0);
+     
+	COMMIT;  # si une erreur était levée, le code se serait arrèté
 END $$
 DELIMITER ;
-	
 
+/**
+ *procédure qui ajoute une nouvelle famille de morts-vivants
+ *
+ *@param _nom_famille IN
+ *@param _point_vie IN
+ *@param _degats_base IN
+ *@param _soleil IN 		s'il est vulnerable au soleil
+ *@param _infectieux IN 		s'il es infectieux
+ */
+DELIMITER $$
+CREATE PROCEDURE Creation_famille_mort_vivants(IN _nom_famille VARCHAR(255), IN _point_vie INT, IN _degats_base INT, In _soleil TINYINT, IN _infectieux TINYINT)
+BEGIN
+    DECLARE _id_famille INT;
+    
+	#variables gestion erreur
+	DECLARE _code CHAR(5);                      
+    DECLARE _message TEXT; 
+    
+    #gestion d'erreur
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1            
+				_code = RETURNED_SQLSTATE,          
+				_message = MESSAGE_TEXT;
+			SELECT _code, _message;
+            ROLLBACK;
+    END;
+    
+    START TRANSACTION;
+    INSERT INTO Famille_monstre(nom_famille, degats_base, point_vie_maximal)
+		VALUES(_nom_famille, _degats_base, _point_vie);
+        
+	SET _id_famille = (SELECT id_famille FROM Famille_monstre WHERE nom_famille = _nom_famille);
+    
+	INSERT INTO Mort_vivant(famille, vulnerable_soleil, infectieux)
+		VALUES(_id_famille, _soleil, _infectieux);
+        
+	COMMIT; # si une erreur était levée, le code se serait arrèté
+    
+END $$
+DELIMITER ;
