@@ -36,7 +36,7 @@ BEGIN
                             salle = _id_salle
 		);
     SET _monstre_haut_xp = (
-		SELECT id_monstre FROM Affectation_salle
+		SELECT experience FROM Affectation_salle
 			INNER JOIN Monstre ON monstre = id_monstre
 			WHERE salle = _id_salle AND
             debut_affectation < _moment_visite AND
@@ -45,7 +45,7 @@ BEGIN
 			LIMIT 1
         );
 	SET _aventurier_bas_niveau = (
-		SELECT id_aventurier FROM Expedition_aventurier
+		SELECT niveau FROM Expedition_aventurier
 			NATURAL JOIN Aventurier
             WHERE id_expedition = _id_expedition
             ORDER BY niveau
