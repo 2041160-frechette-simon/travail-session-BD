@@ -64,7 +64,6 @@ BEGIN
     RETURN _nombre_elementaires_feu > 0 AND _nombre_elementaires_eau > 0;
 END $$
 
-
 DELIMITER ;
 
 # ------------------------------------------------------------------------------------------------------
@@ -82,32 +81,50 @@ DELIMITER ;
 */
 DROP FUNCTION IF EXISTS verifier_surcharge_coffre;
 DELIMITER $$
-CREATE FUNCTION verifier_surcharge_coffre(id_coffre_a_verif INT) RETURNS TINYINT READS SQL DATA
+CREATE FUNCTION verifier_surcharge_coffre(id_coffre_a_verif INT,masse_objet_ajoute INT, quantite_ligne_ajoutee INT) RETURNS TINYINT READS SQL DATA
 BEGIN    
 	DECLARE _masse_totale FLOAT;
     DECLARE _nb_obj INT;
     SET _nb_obj = (SELECT sum(Ligne_coffre.quantite) FROM Ligne_coffre
 				INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
-                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
+                GROUP BY Coffre_tresor.id_coffre_tresor);
 
-	
+# on ajoute le nombre d'objets associé à la ligne qui s'apprête à être ajoutée
+IF _nb_obj IS NULL THEN 
+	SET _nb_obj = quantite_ligne_ajoutee;
+ELSE
+	SET _nb_obj = _nb_obj + quantite_ligne_ajoutee;
+END IF;
+
 	IF _nb_obj > 15 THEN
 		SIGNAL SQLSTATE '02001'
 			SET MESSAGE_TEXT = "le coffre auquel vous tentez d'ajouter un objet contient déjà 15 objets.";
-	END IF;
+		RETURN 1;
+	END IF; 
     
 	SET _masse_totale = (SELECT sum(Objet.masse * Ligne_coffre.quantite) FROM Objet
 						INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
 						INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
-                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
+                        GROUP BY Coffre_tresor.id_coffre_tresor);
 
-	
+# on ajoute la masse totale de la ligne qui s'apprête à être ajoutée
+IF _masse_totale IS NULL THEN
+	SET _masse_totale = (masse_objet_ajoute * quantite_ligne_ajoutee);
+ELSE
+	SET _masse_totale = _masse_totale + (masse_objet_ajoute * quantite_ligne_ajoutee);
+END IF;
+
+
+
 	IF _masse_totale > 300 THEN 
 		SIGNAL SQLSTATE '02002'
 			SET MESSAGE_TEXT = "En ajoutant un objet dans ce coffre, vous excédez la capacité totale de ce dernier (300kg)";
+		RETURN 1;
 	END IF;
 	
-    RETURN 1;
+    RETURN 0;
 END$$
 
 DELIMITER ;
@@ -116,24 +133,39 @@ DELIMITER ;
 # déclencheur 1
 
 /*
-* déclencheur qui vérifie après l'insertion si l'objet ajouté crée une surcharge dans le coffre dans lequel il est.
-* @Dependecies: verifier_surcharge_coffre()
+* déclencheur qui vérifie après l'insertion si la ligne ajoutée crée une surcharge dans le coffre dans lequel elle est.
+* @Dependencies: verifier_surcharge_coffre()
 * @Dependencies: Ligne_coffre, Coffre_tresor, Objet
 */
-DROP TRIGGER IF EXISTS coffre_surcharge;
+DROP TRIGGER IF EXISTS coffre_surcharge_nouvelle_ligne;
 DELIMITER $$
-CREATE TRIGGER coffre_surcharge BEFORE INSERT ON Ligne_coffre FOR EACH ROW
+CREATE TRIGGER coffre_surcharge_nouvelle_ligne BEFORE INSERT ON Ligne_coffre FOR EACH ROW
 BEGIN
-	DECLARE _id_coffre_a_verif INT;
+	DECLARE _masse_objet_a_verif INT;
+    DECLARE _quantite_objet INT;
     DECLARE _etat_surcharge INT;
-    
-        
-	SET _id_coffre_a_verif = (SELECT Coffre_tresor.id_coffre_tresor FROM Objet
-							INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
-							INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
-                            WHERE Ligne_coffre.objet = NEW.objet AND Ligne_coffre.coffre = NEW.coffre);
-	
-	SET _etat_surcharge = verifier_surcharge_coffre(_id_coffre_a_verif); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
+	SET _quantite_objet = NEW.quantite;
+    SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Objet.id_objet = NEW.objet);
+	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
+END$$	
+
+DELIMITER ;
+
+/*
+* déclencheur qui vérifie après la mise à jour d'une ligne si la quantité a été changée et que cela crée une surcharge dans le coffre dans lequel elle est.
+* @Dependencies: verifier_surcharge_coffre()
+* @Dependencies: Ligne_coffre, Coffre_tresor, Objet
+*/
+DROP TRIGGER IF EXISTS coffre_surcharge_update_ligne;
+DELIMITER $$
+CREATE TRIGGER coffre_surcharge_update_ligne BEFORE UPDATE ON Ligne_coffre FOR EACH ROW
+BEGIN
+	DECLARE _masse_objet_a_verif INT;
+    DECLARE _quantite_objet INT;
+    DECLARE _etat_surcharge INT;
+	SET _quantite_objet = NEW.quantite;
+    SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet);
+	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	
 
 DELIMITER ;
@@ -158,7 +190,7 @@ BEGIN
     SET _presence_elements_opposes = elements_opposes_piece(NEW.salle, NEW.debut_affectation, NEW.fin_affectation);
     
     # Si deux éléments opposés sont dans la même pièce, une exception de la classe avertissement est lancée:
-    IF _presence_elements_opposes > 0 THEN
+    IF _presence_elements_opposes = 1 THEN
 		SIGNAL SQLSTATE '01001'
 			SET MESSAGE_TEXT = _message_exception;
     END IF;
@@ -176,17 +208,13 @@ DROP TRIGGER IF EXISTS re_affectation_mortalite;
 DELIMITER $$
 CREATE TRIGGER re_affectation_mortalite AFTER UPDATE ON Monstre FOR EACH ROW
 BEGIN
-	DECLARE _id_affectation_salle_monstre INT;
     DECLARE _date_actuelle DATETIME;
     SET _date_actuelle = CURRENT_TIMESTAMP(); # pour avoir une valeur de type DATETIME correspondant à la date et à l'heure actuelle.
-    SET  _id_affectation_salle_monstre = (SELECT Affectation_salle.id_affectation FROM Affectation_salle
-										WHERE Affectation_salle.monstre = OLD.id_monstre
-    );
     
 	IF NEW.point_vie <= 0 THEN
 		UPDATE Affectation_salle
         SET fin_affectation = _date_actuelle
-        WHERE id_affectation = _id_affectation_salle_monstre;
+        WHERE monstre = NEW.id_monstre;
     END IF;
 END$$
 DELIMITER ;

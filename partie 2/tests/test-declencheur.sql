@@ -41,8 +41,8 @@ BEGIN
 			ROLLBACK;
 		END;
 		# mise à zéro des enregistrements de test créés:
-		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 OR Ligne_coffre.objet = 1000;
-		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 OR Ligne_coffre.objet = 1001;
+		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 AND Ligne_coffre.objet = 1000;
+		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 AND Ligne_coffre.objet = 1001;
 		DELETE FROM Coffre_tresor WHERE Coffre_tresor.id_coffre_tresor = 1000;
 		DELETE FROM Objet WHERE Objet.id_objet = 1000;
 		DELETE FROM Objet WHERE Objet.id_objet = 1001;
@@ -153,7 +153,9 @@ BEGIN
 		INSERT INTO Objet(id_objet,nom,valeur,masse)
 		VALUES (1000,"objet initial",10,290);
 		INSERT INTO Ligne_coffre(coffre,objet,quantite)
-		VALUES (1000,1000,16);
+		VALUES (1000,1000,1);
+        
+        UPDATE Objet SET masse = 301 WHERE id_objet = 1000;
     
 		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_trigger1_update_masse;
     COMMIT;
@@ -200,7 +202,9 @@ BEGIN
 		INSERT INTO Objet(id_objet,nom,valeur,masse)
 		VALUES (1000,"objet initial",10,290);
 		INSERT INTO Ligne_coffre(coffre,objet,quantite)
-		VALUES (1000,1000,16);
+		VALUES (1000,1000,14);
+        
+        UPDATE Ligne_coffre SET quantite = 16 WHERE objet = 1000;
     
 		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_trigger1_update_obj;
     COMMIT;
@@ -306,6 +310,9 @@ BEGIN
     VALUES
     (1000,1000,1000,13,'2043:05:01 00:00:00','2046:05:01 00:00:00'),
     (1001,1001,1000,13,'2042:05:01 00:00:00', '2045:05:01 00:00:00');
+    
+    #SELECT * FROM Affectation_salle WHERE monstre = 1000 OR monstre = 1001;
+	#SELECT elements_opposes_piece(13, '2042:05:01 00:00:00', '2045:05:01 00:00:00');
 
     
     # À ce stade, une exception devrait avoir été levée.
@@ -313,11 +320,11 @@ BEGIN
     COMMIT;
     
     #suppression des données de test
-	DELETE FROM Affectation_salle WHERE Affectation_salle.id_affectation = 1000 AND id_affectation = 1001;
+	DELETE FROM Affectation_salle WHERE Affectation_salle.id_affectation = 1000 OR id_affectation = 1001;
 	DELETE FROM Responsabilite WHERE Responsabilite.id_responsabilite = 1000;
-    DELETE FROM Monstre WHERE Monstre.id_monstre = 1000 AND id_monstre = 1001;
-    DELETE FROM Elementaire WHERE Elementaire.id_elementaire = 1000 AND id_elementaire = 1001;
-    DELETE FROM Famille_monstre WHERE Famille_monstre.id_famille = 1000 AND id_famille = 1001;
+    DELETE FROM Monstre WHERE Monstre.id_monstre = 1000 OR id_monstre = 1001;
+    DELETE FROM Elementaire WHERE Elementaire.id_elementaire = 1000 OR id_elementaire = 1001;
+    DELETE FROM Famille_monstre WHERE Famille_monstre.id_famille = 1000 OR id_famille = 1001;
 END$$
 DELIMITER ;
 # ----------------------------------------------------------------------------------------------------------------------
@@ -363,6 +370,10 @@ BEGIN
         SELECT monstre,point_vie,debut_affectation, fin_affectation FROM Monstre INNER JOIN Affectation_salle ON Monstre = id_monstre WHERE monstre = 1000;
 	COMMIT;
     
+	# suppression des données de test existantes
+    DELETE FROM Affectation_salle WHERE monstre = 1000;
+    DELETE FROM Monstre WHERE id_monstre = 1000;
+	DELETE FROM Responsabilite WHERE id_responsabilite = 1000;
 END$$
 DELIMITER ;
 # ----------------------------------------------------------------------------------------------------------------------
@@ -413,6 +424,9 @@ DELIMITER ;
 START TRANSACTION;
 	# -- déclencheur 1
 	CALL procedure_test_surcharge_coffre_masse();
+    CALL procedure_test_surcharge_coffre_obj();
+    CALL procedure_test_surcharge_coffre_update_masse();
+    CALL procedure_test_surcharge_coffre_update_obj();
 	# -- déclencheur 2
 	CALL elements_opposes_pièce_test();
 	# -- déclencheur 3

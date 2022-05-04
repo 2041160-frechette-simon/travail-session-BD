@@ -36,7 +36,7 @@ DROP FUNCTION IF EXISTS decrypter_data;
 DELIMITER $$
 CREATE FUNCTION decrypter_data(chaine_a_decrypter BLOB) RETURNS TEXT DETERMINISTIC CONTAINS SQL
 BEGIN
-	RETURN CAST(AES_DECRYPT(chane_a_decrypter, UNHEX(SHA2('mortauxheros', 256))) AS CHAR);
+	RETURN CAST(AES_DECRYPT(chaine_a_decrypter, UNHEX(SHA2('mortauxheros', 256))) AS CHAR);
 END$$
 DELIMITER ;
 # ---------------------------------------------------------------------------------------------------------------------------
@@ -55,17 +55,32 @@ DELIMITER $$
 CREATE FUNCTION trouver_responsable_salle(fonction_salle VARCHAR(255),date_a_verif DATETIME) RETURNS INT NOT DETERMINISTIC READS SQL DATA
 BEGIN
 	DECLARE _id_monstre_responsable INT;
+    DECLARE _fonction_salle_existante VARCHAR(255);
+    DECLARE _nombre_affectations INT;
+    
+    SET _fonction_salle_existante = (SELECT Salle.fonction FROM Salle WHERE Salle.fonction = fonction_salle);
+    
+    IF _fonction_salle_existante <> fonction_salle THEN
+		SIGNAL SQLSTATE '01002'
+			SET MESSAGE_TEXT = "La salle dont vous tentez de trouver le responsable n'existe pas.";
+		RETURN 0;
+    END IF;
+    
+    SET _nombre_affectations = (SELECT count(Affectation_salle.id_affectation) FROM Affectation_salle
+								INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
+                                WHERE Salle.fonction = "salle des explosifs" AND '2040:05:01 00:00:00' BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
+                                GROUP BY Salle.id_salle);
+    
     SET _id_monstre_responsable = (SELECT Affectation_salle.monstre FROM Responsabilite
 			INNER JOIN Affectation_salle ON Responsabilite.id_responsabilite = Affectation_salle.responsabilite
-			INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
-			WHERE Salle.fonction = fonction_salle 
-			AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
-			ORDER BY Responsabilite.niveau_responsabilite DESC
+            INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
+			WHERE Salle.fonction = fonction_salle AND date_a_verif BETWEEN 	Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
+            ORDER BY Responsabilite.niveau_responsabilite DESC
 			LIMIT 1);
-	IF _id_monstre_responsable IS NULL THEN
+            
+	IF _id_monstre_responsable IS NULL THEN 
 		SIGNAL SQLSTATE '01001'
-			SET MESSAGE_TEXT = "Il n'y a aucune affectation à cette salle pour le moment.";
-            RETURN 0;
+			SET MESSAGE_TEXT = "Il n'y a aucun responsable dans la salle choisie au moment fourni.";
 	END IF;
 	RETURN  _id_monstre_responsable;
 END$$
@@ -114,17 +129,15 @@ BEGIN
 	
 	SET _salle_existe = (SELECT Salle.id_salle FROM Salle
 						WHERE Salle.id_salle = id_salle);
-	SET nb_monstres_affectés = (SELECT count(Monstre.id_monstre) FROM Monstre
-										INNER JOIN Affectation_salle ON Monstre.id_monstre = Affectation_salle.monstre
-										INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
-										WHERE Salle.id_salle = id_salle AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
-										GROUP BY Salle.id_salle);
+	SET nb_monstres_affectés = (SELECT count(Affectation_salle.monstre) FROM Affectation_salle
+                                        WHERE Affectation_salle.salle = id_salle AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation);
+
 	IF _salle_existe IS NULL THEN 
 		SIGNAL SQLSTATE '02001' SET MESSAGE_TEXT = "La salle dont vous tentez de vérifier la vitalité n'existe pas";
 	END IF;
     
     IF nb_monstres_affectés <=0 THEN
-				SIGNAL SQLSTATE '02002' SET MESSAGE_TEXT = "La salle dont vous tentez de vérifier la vitalité n'a aucun monstre d'affecté";
+				SIGNAL SQLSTATE '02002' SET MESSAGE_TEXT = "La salle dont vous tentez de vérifier la vitalité n'a aucun monstre d'affecté au moment fourni.";
     END IF;
 	
 # si aucun code d'eRReur n'a été levé, le code se poursuit

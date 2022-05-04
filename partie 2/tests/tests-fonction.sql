@@ -4,11 +4,6 @@
 # Date : 30 avril 2022
 #Langage: SQL
 
-#TODO : vérifier gestion d'erreurs / exceptions fonction 6
-#TODO : vérifier gestion d'erreurs / exceptions fonction 5
-#TODO : vérifier gestion d'erreurs / exceptions fonction 3
-#TODO : changer le script d'insertion de données pour inclure le cryptage de tous les numéros d'assurance maladie
-
 USE DonjonInc;
 # ---------------------------------------------------------------------------------------------------------------------------
 # fonction 1 ET 2
@@ -37,10 +32,10 @@ BEGIN
     
     SET _chaine_originale = "Ceci est un test.";
     SET _chaine_cryptee = crypter_data(_chaine_originale);
-    SET _chaine_finale = decrypter_data(_chaine_cryptee,"mortauxheros");
+    SET _chaine_finale = decrypter_data(_chaine_cryptee);
     
     IF _chaine_finale = _chaine_originale THEN
-		SET _message_resultat = CONCAT("La chaîne de caractère ",_chaine_originale," a pu être décryptée à l'aide de la clé mortauxheros");
+		SET _message_resultat = CONCAT("La chaîne de caractère '",_chaine_originale,"' a pu être décryptée à l'aide de la clé mortauxheros");
 	ELSE
 		SET _message_resultat = CONCAT("La chaîne de caractère décryptée ne correspond pas à l'originale. ORIGINALE: ",_chaine_originale," RESULTAT: ",_chaine_finale);
 	END IF;
@@ -60,14 +55,22 @@ du monstre qui en est responsable (plus haut niveau de responsabilité).
 @return id du responsable
 */
 # ---------------------------------------------------------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS test_fonction_3;
+/*
+Procédure qui teste la valeur de retour de la fonction vérifiant le responsable d'une salle à un moment donné.
+Cette fonction ajoute un monstre de niveau de responsabilite abherrant à la salle pour vérifier la réactivite de la fonction.
+*/
+DROP PROCEDURE IF EXISTS test_fonction_3_salle_peuplee;
 DELIMITER $$
-CREATE PROCEDURE test_fonction_3()
+CREATE PROCEDURE test_fonction_3_salle_peuplee()
 BEGIN
-	
     DECLARE _fonction_salle_1 VARCHAR(255);
     DECLARE _responsable_trouve INT;
     DECLARE _message_resultat TEXT;
+    
+	#suppression des données de test
+	DELETE FROM Affectation_salle WHERE monstre = 2000;
+    DELETE FROM Monstre WHERE id_monstre = 2000;
+    DELETE FROM Responsabilite WHERE id_responsabilite = 2000;
         
 	# il faut d'abord trouver la fonction de la salle 1. C'est elle que l'on utilise pour le test
     SET _fonction_salle_1 = (SELECT Salle.fonction FROM Salle WHERE id_salle = 1);
@@ -86,18 +89,62 @@ BEGIN
     
     #vérification du plus haut niveau de responsabilite
     SET _responsable_trouve = trouver_responsable_salle(_fonction_salle_1,'2040:05:01 00:00:00');
+    
     IF _responsable_trouve = 2000 THEN
 		SET _message_resultat = "Le responsable de la salle a été retrouvé avec succès !";
 	ELSE
 		SET _message_resultat = 
         CONCAT("Le responsable de la salle ayant la fonction: '",_fonction_salle_1,"' n'a pas été retrouvé correctement. Le monstre '",_responsable_trouve," a été trouvé à tort");
 	END IF;
-    SELECT _message_resultat AS resultat_fonc3;
-    
+    SELECT _message_resultat AS resultat_fonction_3_salle_peuplee;
+	
 	#suppression des données de test
 	DELETE FROM Affectation_salle WHERE monstre = 2000;
     DELETE FROM Monstre WHERE id_monstre = 2000;
     DELETE FROM Responsabilite WHERE id_responsabilite = 2000;
+END$$
+DELIMITER ;
+/*
+Procédure qui teste la valeur de retour de la fonction vérifiant le responsable d'une salle à un moment donné.
+Cette fonction retire toutes les affectations à une salle pour tester la réactivité de la fonction.
+*/
+DROP PROCEDURE IF EXISTS test_fonction_3_affectation_inexistante;
+DELIMITER $$
+CREATE PROCEDURE test_fonction_3_affectation_inexistante()
+BEGIN
+	DECLARE _id_responsable_trouve INT;
+    DECLARE _fonction_salle_1 VARCHAR(255);
+    DECLARE _code INT;
+    DECLARE _message TEXT;
+    
+    DECLARE EXIT HANDLER FOR SQLSTATE '01001'
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1
+			_code = RETURNED_SQLSTATE,
+			_message = MESSAGE_TEXT;
+        #SELECT _code,_message;
+        SELECT "Le test a réussi, la salle sans affectation a été signalée" AS resultat_fonction_3_affectation_inexistante;
+    END;
+    
+	#suppression des affectations reliées à la salle 1 selon l'insertion donnée.
+	DELETE FROM Affectation_salle WHERE salle = 1;
+    
+    START TRANSACTION;
+		# il faut d'abord trouver la fonction de la salle 1. C'est elle que l'on utilise pour le test
+		SET _fonction_salle_1 = (SELECT Salle.fonction FROM Salle WHERE id_salle = 1);
+		SET _id_responsable_trouve = trouver_responsable_salle(_fonction_salle_1,'2040:05:01 00:00:00');
+		
+		#à ce stade-ci, une exception devrait avoir été levée
+		SELECT _id_responsable_trouve, "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc3_affectation_inexistante;
+    COMMIT;
+    
+    #re-construction des affectations reliées à la salle 1 selon l'insertion donnée
+    INSERT INTO Affectation_salle(id_affectation,monstre,responsabilite,salle,debut_affectation,fin_affectation)
+    VALUES
+    (1,11,1,1,'1082-06-26 04:00:00', '1082-08-06 12:00:00'),
+	(2,15,2,1,'1082-06-07 04:45:00','1082-08-22 00:45:00'),
+	(39,17,11,1,'1082-09-02 16:45:00','1082-11-28 12:30:00'),
+	(40,18,11,1,'1082-08-27 08:30:00','1082-11-20 20:00:00');
 END$$
 DELIMITER ;
 # ---------------------------------------------------------------------------------------------------------------------------
@@ -111,6 +158,9 @@ La fonction retourne l’aventurier qui possède le plus haut niveau dans l’ex
 @return id de l'aventurier de plus haut niveau.
 */
 # ---------------------------------------------------------------------------------------------------------------------------
+/*
+Procédure testant la fonction trouvant l'aventurier le plus haut niveau dans une expédition donnée.
+*/
 DROP PROCEDURE IF EXISTS test_fonction_4;
 DELIMITER $$
 CREATE PROCEDURE test_fonction_4()
@@ -119,16 +169,20 @@ BEGIN
     DECLARE _nom_expedition_1 VARCHAR(255);
     DECLARE _message_resultat TEXT;
     
+	#suppression des données de test
+    DELETE FROM Expedition_aventurier WHERE id_expedition = 1 AND id_aventurier = 2000;
+    DELETE FROM Aventurier WHERE id_aventurier = 2000;
+    
 	# pour bien tester la fonction, nous allons introduire un aventurier abherrant dans une expédition existante (celle d'ID 1)
-	SET _nom_expedition_1 = (SELECT Expedition.nom FROM Expedition WHERE id_expedition = 1);
+	SET _nom_expedition_1 = (SELECT Expedition.nom_equipe FROM Expedition WHERE id_expedition = 1);
             
     #création de l'aventurier
     INSERT INTO Aventurier(id_aventurier,nom,classe,niveau,point_vie,attaque)
-    VALUES (2000,"test","test_classe",1000,1000,1000);
+    VALUES (2000,"test","test_classe",100,1000,1000);
     
     #jumelage de l'aventurier et l'expédition.
     INSERT INTO Expedition_aventurier(id_expedition,id_aventurier)
-    VALUES (2000,1);
+    VALUES (1,2000);
     
     # vérification de l'aventurier de plus haut niveau dans l'expedition
 	SET _plus_haut_niveau_trouve = plus_haut_niveau_expedition(_nom_expedition_1);
@@ -141,7 +195,7 @@ BEGIN
     SELECT _message_resultat AS resultat_fonc4;
     
 	#suppression des données de test
-    DELETE FROM Expedition_aventurier WHERE id_expedition = 2000 AND id_aventurier = 2000;
+    DELETE FROM Expedition_aventurier WHERE id_expedition = 1 AND id_aventurier = 2000;
     DELETE FROM Aventurier WHERE id_aventurier = 2000;
 END$$
 DELIMITER ;
@@ -169,15 +223,15 @@ CREATE PROCEDURE test_fonction_5_salle_peuplee()
 BEGIN
 	#Pour ce test, nous allons prendre une salle existante où il y a des monstres d'affectés. Aussi, on s'assurera que les monstres affectés sont en vie.
     # le tout est vérifié à l'aide de la requête suivante:
-    SELECT salle,debut_affectation,fin_affectation, Monstre.point_vie FROM Affectation_salle 
-    INNER JOIN Monstre ON Affectation_salle.monstre = Monstre.id_monstre
-    WHERE Affectation_salle.salle = 1 AND Monstre.point_vie >0;
+    #SELECT salle,debut_affectation,fin_affectation, Monstre.point_vie FROM Affectation_salle 
+    #INNER JOIN Monstre ON Affectation_salle.monstre = Monstre.id_monstre
+    #WHERE Affectation_salle.salle = 1 AND Monstre.point_vie >0;
     # avec l'insertion fournie, on peut en conclure que en '1082:06:26 04:00:00' un monstre en vie a été affecté à la salle 1.
     
     IF verifier_vitalite_monstre_salle(1,'1082:06:27 00:00:00') = 1 THEN
-		SELECT "La vitalité a été correctement déclarée" AS resultat_fonc5;
+		SELECT "La vitalité a été correctement déclarée" AS resultat_fonc5_salle_peuplee;
 	ELSE
-		SELECT "La vitalité a été déclare fausse à tort" AS resultat_fonc5;
+		SELECT "La vitalité a été déclare fausse à tort" AS resultat_fonc5_salle_peuplee;
     END IF;
 END$$
 DELIMITER ;
@@ -191,19 +245,33 @@ DELIMITER $$
 CREATE PROCEDURE test_fonction_5_salle_non_affectee()
 BEGIN
 	# pour effectuer ce test, nous allons supprimmer toutes les affectations  de la salle 1 avant de la soumettre à la fonction.
+    DECLARE _vitalite_trouve TINYINT;
+    DECLARE _code INT;
+    DECLARE _message TEXT;
+    
+	DECLARE EXIT HANDLER FOR SQLSTATE '02002'
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1
+			_code = RETURNED_SQLSTATE,
+            _message = MESSAGE_TEXT;
+		#SELECT _code,_message;
+        SELECT "Le test a réussi ! La vitalité d'une salle non-affectée a déclenché une exception." AS resultat_fonc5_salle_non_affectee;
+        ROLLBACK;
+    END;
     
 	# suppression des affectations de la salle 1
     DELETE FROM Affectation_salle WHERE salle = 1;
     
-    #vérifications de la vitalité
-    IF verifier_vitalite_monstre_salle(1,'1082:06:27 04:00:00') = 0 THEN 
-		SELECT "La vitalité a été correctement déclarée dans une salle non-affectée " AS resultat_fonc5;
-	ELSE
-		SELECT "La vitalité a été déclarée vraie à tort dans une salle non-affectée" AS resultat_fonc5;
-	END IF;
+    START TRANSACTION;
+		#vérifications de la vitalité
+		SET _vitalite_trouve = verifier_vitalite_monstre_salle(1,'1082:06:27 04:00:00');
+		
+		# à ce stade-ci, une exception devrait avoir été levée
+		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc5_salle_non_affectee;
+    COMMIT;
     
 	# reconstruction des affectations de la salle 1
-    INSERT INTO Affectation_salle(id_affectation,monstre,responsable,salle,debut_affectation,fin_affectation) VALUES
+    INSERT INTO Affectation_salle(id_affectation,monstre,responsabilite,salle,debut_affectation,fin_affectation) VALUES
 	(1,11,1,1,'1082-06-26 04:00:00','1082-08-06 12:00:00'),
 	(2,15,2,1,'1082-06-07 04:45:00','1082-08-22 00:45:00'),
 	(39,17,11,1,'1082-09-02 16:45:00','1082-11-28 12:30:00'),
@@ -219,11 +287,24 @@ DROP PROCEDURE IF EXISTS test_fonction_5_salle_inexistante;
 DELIMITER $$
 CREATE PROCEDURE test_fonction_5_salle_inexistante()
 BEGIN
-    IF verifier_vitalite_monstre_salle(5000,'1082:06:27 04:00:00') = 0 THEN
-		SELECT "La vitalité a été correctement déclarée dans une salle inexistante." AS resultat_fonc5;
-	ELSE
-		SELECT "La vitalité a été déclarée positive à tort dans une salle inexistante" AS resultat_fonc5;
-	END IF;
+	DECLARE _code INT;
+    DECLARE _message TEXT;
+    DECLARE _vitalite_trouve TINYINT;
+    DECLARE EXIT HANDLER FOR SQLSTATE '02001'
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1
+			_code = RETURNED_SQLSTATE,
+			_message = MESSAGE_TEXT;
+		#SELECT _code,_message;
+		SELECT "Le test a réussi ! La vérification de la vitalité sur une salle inexistante a levé une exception" AS resultat_fonc5_salle_inexistante;
+		ROLLBACK;    
+    END;
+    START TRANSACTION;
+		SET _vitalite_trouve = verifier_vitalite_monstre_salle(5000,'1082-06-26 04:00:00');
+
+        #à ce stade-ci, une exception devrait avoir été levée
+		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc5_salle_inexistante;
+    COMMIT;
 END$$
 DELIMITER ;
 # ---------------------------------------------------------------------------------------------------------------------------
@@ -248,17 +329,17 @@ CREATE PROCEDURE test_fonction_6_expedition_existante()
 BEGIN
 	#nous allons prendre une expédition qui, selon l'instertion initiale, est peuplée d'aventuriers et où il y en  a au moins 1 en vie. L'expédition 1 est idéale.
     # Le tout a été vérifié à l'aide de la requête suivante:
-    SELECT * FROM Aventurier 
-    INNER JOIN Expedition_aventurier ON Expedition_aventurier.id_aventurier = Aventurier.id_aventurier
-    INNER JOIN Expedition ON Expedition_aventurier.id_expedition = Expedition.id_expedition
-    WHERE Expedition.id_expedition = 1 AND Aventurier.point_vie >0;
+    #SELECT * FROM Aventurier 
+    #INNER JOIN Expedition_aventurier ON Expedition_aventurier.id_aventurier = Aventurier.id_aventurier
+    #INNER JOIN Expedition ON Expedition_aventurier.id_expedition = Expedition.id_expedition
+    #WHERE Expedition.id_expedition = 1 AND Aventurier.point_vie >0;
     #en ayant au moins un résultat suite à cette requête, on s'assure que l'expédition 1 est peuplée de vivants.
     
     #vérification vitalité
     IF verifier_vitalite_aventurier_expedition(1) = 1 THEN
-		SELECT "La vitalité a été correctement déclarée pour une expedition existante" AS resultat_fonc6;
+		SELECT "La vitalité a été correctement déclarée pour une expedition existante" AS resultat_fonc6_expedition_existante;
 	ELSE
-		SELECT "La vitalité a été déclarée négative à tort pour une expédition existante" AS resultat_fonc6;
+		SELECT "La vitalité a été déclarée négative à tort pour une expédition existante" AS resultat_fonc6_expedition_existante;
 	END IF;
 END$$
 DELIMITER ;
@@ -266,17 +347,29 @@ DELIMITER ;
 /*
 Procédure de test permettant de vérifier si la fonction de vitalité d'expédition vérifie correctement dans une expédition inexistante
 */
-DROP PROCEDURE IF EXISTS test_fonction_6_expedition_existante;
+DROP PROCEDURE IF EXISTS test_fonction_6_expedition_inexistante;
 DELIMITER $$
-CREATE PROCEDURE test_fonction_6_expedition_existante()
+CREATE PROCEDURE test_fonction_6_expedition_inexistante()
 BEGIN
+	DECLARE _vitalite_trouve TINYINT;
+    DECLARE _code INT;
+    DECLARE _message TEXT;
     
-    #vérification vitalité
-    IF verifier_vitalite_aventurier_expedition(3000) = 0 THEN
-		SELECT "La vitalité a été correctement déclarée pour une expedition inexistante" AS resultat_fonc6;
-	ELSE
-		SELECT "La vitalité a été déclarée négative à tort pour une expédition inexistante" AS resultat_fonc6;
-	END IF;
+	DECLARE EXIT HANDLER FOR SQLSTATE '02001'
+    BEGIN
+		GET DIAGNOSTICS CONDITION 1
+			_code = RETURNED_SQLSTATE,
+            _message = MESSAGE_TEXT;
+		#SELECT _code,_message;
+		SELECT "Le test a réussi ! La vérification de la vitalité sur une expédition inexistante a déclenché une exception"AS resultat_fonc6_expedition_inexistante;
+    END;
+    
+	START TRANSACTION;
+		SET _vitalite_trouve = verifier_vitalite_aventurier_expedition(3000);
+        
+		#à ce stade-ci, une exception devrait avoir été levée
+		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc6_expedition_inexistante;
+    COMMIT;
 END$$
 DELIMITER ;
 
@@ -284,30 +377,25 @@ DELIMITER ;
 
 # ---------------------------------------------------------------------------------------------------------------------------
 #Appel des tests
-DROP PROCEDURE IF EXISTS appel_tests_declencheurs;
-
-DELIMITER $$
-CREATE PROCEDURE appel_tests_declencheurs()
-BEGIN
-	DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-		SELECT "Une erreur est survenue lors de l'éxécution des tests des fonctions";
-        ROLLBACK;
-	END;
-	START TRANSACTION;
-		# -- fonction 1
-        CALL test_fonction_1_2();
-		# -- fonction 2
-		CALL test_fonction_3();
-		# -- fonction 3
-		CALL test_fonction_4();
-		# -- fonction 4
-		CALL test_fonction_5();
-        # -- fonction 5
-		CALL test_fonction_6();
-        # -- fonction 6
-    COMMIT;
-END$$
-DELIMITER ;
+START TRANSACTION;
+	# -- fonction 1 2
+	CALL test_fonction_1_2();
+    
+	# -- fonction 3
+    CALL test_fonction_3_salle_peuplee();
+    CALL test_fonction_3_affectation_inexistante();
+    
+	# -- fonction 4
+	CALL test_fonction_4();
+    
+	# -- fonction 5
+	CALL test_fonction_5_salle_peuplee();
+    CALL test_fonction_5_salle_non_affectee();
+    CALL test_fonction_5_salle_inexistante();
+    
+	# -- fonction 6
+	CALL test_fonction_6_expedition_existante();
+    CALL test_fonction_6_expedition_inexistante();
+COMMIT;
 # ---------------------------------------------------------------------------------------------------------------------------
 
