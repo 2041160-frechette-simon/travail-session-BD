@@ -8,6 +8,13 @@
 #
 #--------------------------------------------------------------
 
+DROP PROCEDURE IF EXISTS Intimidation;
+DROP PROCEDURE IF EXISTS Malediction_affaiblissement;
+DROP PROCEDURE IF EXISTS Combat;
+DROP PROCEDURE IF EXISTS Visite_salle;
+DROP PROCEDURE IF EXISTS Embauche;
+DROP PROCEDURE IF EXISTS Creation_famille_mort_vivants;
+
 /**
  * Procédure d'intimidation
  * si l'intimidation est réussi, les aventuriers peuvent pillier sans tuer les monstres
@@ -49,7 +56,7 @@ BEGIN
     IF(_difference_niveau_xp > 3)
     THEN
 		SET _intimidation_reussi = 1;
-    ELSE 
+    ELSE
 		SET _intimidation_reussi = 0;
     END IF;
 END $$
@@ -103,13 +110,13 @@ DELIMITER ;
  *@param _id_expedition IN
  */
  DELIMITER $$
-CREATE PROCEDURE Combat(IN _id_salle INT, IN_id_expedition INT)
+CREATE PROCEDURE Combat(IN _id_salle INT, IN _id_expedition INT)
 BEGIN
 	DECLARE _moment_visite DATETIME;
     DECLARE _degats_aventuriers INT;
     DECLARE _degats_monstres INT;
     DECLARE _monstres_en_vie INT;
-    DECLARE _aventiuriers_en_vie INT;
+    DECLARE _aventuriers_en_vie INT;
     SET _moment_visite = (SELECT moment_visite FROM Visite_salle
 							WHERE salle = _id_salle
                             AND expedition = _id_expedition);
@@ -120,13 +127,14 @@ BEGIN
 									NATURAL JOIN Expedition_aventurier
                                     NATURAL JOIN Aventurier
                                     WHERE point_vie > 0
+                                    AND id_expedition = _id_expedition
                                     GROUP BY id_expedition);
 		SET _degats_monstres = (SELECT sum(attaque) FROM Salle
 									INNER JOIN Affectation_salle ON salle = id_salle
                                     INNER JOIN Monstre ON monstre = id_monstre
                                     WHERE point_vie > 0
                                     AND debut_affectation <= _moment_visite
-                                    AND fin_affectation <= _moment_visite
+                                    AND fin_affectation >= _moment_visite
                                     GROUP BY Salle);
                                     
 		SET _monstres_en_vie = (SELECT count(id_monstre) FROM Monstre WHERE point_vie > 0);
@@ -153,7 +161,6 @@ DELIMITER $$
 CREATE PROCEDURE Visite_salle(IN _id_salle INT, IN _id_expedition INT, IN _moment_visite DATETIME)
 BEGIN
 	DECLARE _intimidation_reussi TINYINT;
-    DECLARE _ligne_visite_salle_existante INT;
     
     #variables gestion erreur
 	DECLARE _code CHAR(5);                      
