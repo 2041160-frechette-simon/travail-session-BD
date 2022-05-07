@@ -78,7 +78,7 @@ BEGIN
     
     #insertions
     INSERT INTO Expedition(id_expedition, nom_equipe)
-    VALUES(1000, 'équipe avec mage'),
+    VALUES (1000, 'équipe avec mage'),
 			(2000, 'équipe sans mage');
             
 	INSERT INTO Expedition_aventurier(id_expedition, id_aventurier)
@@ -402,12 +402,32 @@ DELIMITER ;
 
 # --------------------------------------------------------------------------------
 #appel des procédures de test
-CALL Test_intimidation();
-CALL Test_Malediction_affaiblissement();
-CALL Test_combat();
-CALL Test_visite_salle();
-CALL Test_embauche();
-CALL Test_creation_famille_mort_vivants();
+DROP PROCEDURE IF EXISTS appel_tests;
+DELIMITER $$
+CREATE PROCEDURE appel_tests()
+BEGIN
+	#comme on se sert de rollbacks pour annuler les chagements que l'on fait pendant les tests, on doit s'assurer d'attrapper toutes les exceptions involontaires et de faire un rollback.
+	DECLARE _code INT;
+    DECLARE _message VARCHAR(255);
+    
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN 
+		GET DIAGNOSTICS CONDITION 1
+		_code = RETURNED_SQLSTATE,
+        _message = MESSAGE_TEXT;
+        SELECT _code,_message;
+        ROLLBACK;
+	END;
+    
+	CALL Test_intimidation();
+	CALL Test_Malediction_affaiblissement();
+	CALL Test_combat();
+	CALL Test_visite_salle();
+	CALL Test_embauche();
+	CALL Test_creation_famille_mort_vivants();
+END$$
+DELIMITER ;
+CALL appel_tests();
 # --------------------------------------------------------------------------------
 
 

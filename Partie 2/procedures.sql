@@ -129,7 +129,7 @@ BEGIN
                             AND expedition = _id_expedition);
                             
 	#Tant que le tous les monstres ou tous les aventuriers ne sont pas morts, combat
-	WHILE verifier_vitalite_aventurier_salle() = 1 AND verifier_vitalite_monstre_salle(_id_salle, _moment_visite) = 1
+	WHILE verifier_vitalite_aventurier_salle(_id_salle) = 1 AND verifier_vitalite_monstre_salle(_id_salle, _moment_visite) = 1
     DO
 		SET _degats_aventuriers = (SELECT sum(attaque) FROM Expedition
 									NATURAL JOIN Expedition_aventurier
@@ -148,7 +148,7 @@ BEGIN
 		SET _monstres_en_vie = (SELECT count(id_monstre) FROM Monstre WHERE point_vie > 0);
         SET _aventuriers_en_vie = (SELECT count(id_aventurier) FROM Aventurier WHERE point_vie > 0);
         
-		CALL infliger_dommage_monstre(_id_salle, _moment_visite, _degats_aventuriers / _montres_en_vie);
+		CALL infliger_dommage_monstre(_id_salle, _moment_visite, _degats_aventuriers / _monstres_en_vie);
         CALL Malediction_affaiblissement(_id_salle, _id_expedition);
         CALL infliger_dommage_aventurier(_id_expedition, _degats_monstres / _aventuriers_en_vie);
     END WHILE;
@@ -374,7 +374,7 @@ BEGIN
 		FETCH _it_monstres INTO _id_monstre;
         IF _id_monstre IS NOT NULL THEN
 			UPDATE Monstre 
-				SET vie = vie - _dommages_infliges 
+				SET point_vie = point_vie - _dommages_infliges # REMPLACEMENT DE "vie" POUR "point_vie"  - Simon Fréchette
                 WHERE id_monstre = _id_monstre;
         END IF;
     END WHILE;
@@ -413,7 +413,7 @@ BEGIN
 		FETCH _it_aventuriers INTO _id_aventurier;
         IF _id_aventurier IS NOT NULL THEN
 			UPDATE Aventurier 
-				SET vie = vie - _dommages_infliges 
+				SET point_vie = point_vie - _dommages_infliges # REMPLACEMENT DE "vie" pour "point_vie" - simon fréchette
                 WHERE id_aventurier = _id_aventurier;
         END IF;
     END WHILE;
@@ -432,7 +432,7 @@ BEGIN
 		SELECT monstre FROM Affectation_salle 
 			INNER JOIN Monstre ON monstre = id_monstre
             WHERE _moment_visite BETWEEN debut_affectation AND fin_affectation
-			AND id_salle = _id_salle
+			AND salle = _id_salle # REMPLACEMENT DE "id_salle" POUR "salle" - Simon Fréchette
             AND point_vie > 0
             AND attaque > 0;
     
