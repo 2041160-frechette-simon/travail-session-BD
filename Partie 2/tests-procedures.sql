@@ -1,5 +1,5 @@
 # Ceci est le script de tests pour les procédures
-#Author : Clément Provencher
+#Author : Clément Provencher et Simon Fréchette
 #
 # Date :  03/05/22
 # Modification: 03/05/22
@@ -9,7 +9,11 @@ USE DonjonInc;
 
 CALL Test_intimidation();
 
-#Test de la procédure 1 : Intimidation
+/*
+Procédure de test servant à tester le bon fonctionnement de la procédure d'intimidation.
+@Dependencies intimidation
+*/
+DROP PROCEDURE IF EXISTS Test_intimidation;
 DELIMITER $$
 CREATE PROCEDURE Test_intimidation()
 BEGIN
@@ -43,13 +47,11 @@ BEGIN
 END $$
 DELIMITER ;
 
-SELECT * FROM Aventurier NATURAL JOIN Expedition WHERE id_expedition = 3; #4 4 mage  3 5 pas mage
-SELECT * FROM Monstre NATURAL JOIN Humanoide;
-
-CALL Test_Malediction_affaiblissement();
-
+/*
+Procédure de test servant à valider le bon fonctionnement de la procédure de malédiction d'affaiblissement
+@dependencies: Malediction_affaiblissement
+*/
 DROP PROCEDURE IF EXISTS Test_Malediction_affaiblissement;
-#Test de la procédure 2 : Malediction_affaiblissement
 DELIMITER $$
 CREATE PROCEDURE Test_Malediction_affaiblissement()
 BEGIN
