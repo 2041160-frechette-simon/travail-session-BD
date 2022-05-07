@@ -335,8 +335,20 @@ DELIMITER ;
 DELIMITER ;
 
 #--------------------------------------------------------------
+
 # fonctions  et procédures fournies
 
+/**
+ * Auteur : 		Alexandre Ouellet
+ * Date :			29 avril 2022
+ * Langage : 		SQL
+ * Fichier : 		Fonctions et procédures stockées.sql
+ * Description :	Fonctions et procédures en soutien au procédures et fonctions qu'il vous est demandé
+ * 					de coder. Appelez ces fonctions au endroit indiqué dans l'énoncé.
+ *					
+ *					NE PAS MODIFIER CE FICHIER
+ *
+ */
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS infliger_dommage_monstre $$
@@ -350,7 +362,7 @@ DROP PROCEDURE IF EXISTS affaiblissement_monstres $$
  * @param _moment_expedition	IN		le moment auquel les dommages sont infliges
  * @param _dommages_infliges	IN 		la quantite de dommande à infliger à chaque monstre
  */
-CREATE PROCEDURE infliger_dommage_monstre(IN _id_salle INTEGER, IN _moment_expedition INTEGER, IN _dommages_infliges INTEGER)
+CREATE PROCEDURE infliger_dommage_monstre(IN _id_salle INTEGER, IN _moment_expedition DATETIME, IN _dommages_infliges INTEGER)
 BEGIN
 	DECLARE _id_monstre INTEGER;
     DECLARE _termine BOOLEAN DEFAULT FALSE;
@@ -368,15 +380,14 @@ BEGIN
             
 	-- On part le curseur
 	OPEN _it_monstres;
+    FETCH _it_monstres INTO _id_monstre;
     
     -- Met à jour chaque monstre
     WHILE NOT _termine DO
-		FETCH _it_monstres INTO _id_monstre;
-        IF _id_monstre IS NOT NULL THEN
-			UPDATE Monstre 
-				SET point_vie = point_vie - _dommages_infliges # REMPLACEMENT DE "vie" POUR "point_vie"  - Simon Fréchette
-                WHERE id_monstre = _id_monstre;
-        END IF;
+		UPDATE Monstre 
+			SET point_vie = point_vie - _dommages_infliges 
+			WHERE id_monstre = _id_monstre;
+        FETCH _it_monstres INTO _id_monstre;
     END WHILE;
     
     -- On ferme le curseur
@@ -407,15 +418,15 @@ BEGIN
             
 	-- On part le curseur
 	OPEN _it_aventuriers;
+    FETCH _it_aventuriers INTO _id_aventurier;
     
     -- Met à jour chaque monstre
     WHILE NOT _termine DO
+		UPDATE Aventurier 
+			SET point_vie = point_vie - _dommages_infliges 
+			WHERE id_aventurier = _id_aventurier;
+			
 		FETCH _it_aventuriers INTO _id_aventurier;
-        IF _id_aventurier IS NOT NULL THEN
-			UPDATE Aventurier 
-				SET point_vie = point_vie - _dommages_infliges # REMPLACEMENT DE "vie" pour "point_vie" - simon fréchette
-                WHERE id_aventurier = _id_aventurier;
-        END IF;
     END WHILE;
     
     -- On ferme le curseur
@@ -432,7 +443,7 @@ BEGIN
 		SELECT monstre FROM Affectation_salle 
 			INNER JOIN Monstre ON monstre = id_monstre
             WHERE _moment_visite BETWEEN debut_affectation AND fin_affectation
-			AND salle = _id_salle # REMPLACEMENT DE "id_salle" POUR "salle" - Simon Fréchette
+			AND salle = _id_salle
             AND point_vie > 0
             AND attaque > 0;
     
@@ -441,16 +452,20 @@ BEGIN
 
 	-- Ouverture du curseur
     OPEN _it_monstres;
+    FETCH _it_monstres INTO _id_monstre;		-- On récupère le prochain monstre
     
     -- Tant que le curseur est ouvert
     WHILE NOT _termine DO
-		FETCH _it_monstres INTO _id_monstre;		-- On récupère le prochain monstre
         UPDATE Monstre 								-- On met à jour son attaque
 			SET attaque = attaque - 1	
             WHERE id_monstre = _id_monstre;
+		FETCH _it_monstres INTO _id_monstre;		-- On récupère le prochain monstre
     END WHILE;
     
     CLOSE _it_monstres;								-- Fermeture du curseur
 END $$
+
+DELIMITER ;
+
 
 #--------------------------------------------------------------

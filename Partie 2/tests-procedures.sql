@@ -405,20 +405,7 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS appel_tests;
 DELIMITER $$
 CREATE PROCEDURE appel_tests()
-BEGIN
-	#comme on se sert de rollbacks pour annuler les chagements que l'on fait pendant les tests, on doit s'assurer d'attrapper toutes les exceptions involontaires et de faire un rollback.
-	DECLARE _code INT;
-    DECLARE _message VARCHAR(255);
-    
-	DECLARE EXIT HANDLER FOR SQLEXCEPTION
-	BEGIN 
-		GET DIAGNOSTICS CONDITION 1
-		_code = RETURNED_SQLSTATE,
-        _message = MESSAGE_TEXT;
-        SELECT _code,_message;
-        ROLLBACK;
-	END;
-    
+BEGIN        
 	CALL Test_intimidation();
 	CALL Test_Malediction_affaiblissement();
 	CALL Test_combat();

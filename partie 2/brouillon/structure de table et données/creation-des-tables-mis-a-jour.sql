@@ -1,6 +1,3 @@
- 
-
-
 #-------------------------------------------------------------------------------------------------
 #Ceci est le script de création SQL du travail de session "ressources monstrueuses": La partie 2
 #Ce n'est qu'une modification de celui de la partie 1

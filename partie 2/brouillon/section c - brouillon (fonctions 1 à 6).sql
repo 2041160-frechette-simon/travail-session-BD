@@ -130,7 +130,8 @@ BEGIN
 										INNER JOIN Salle ON Affectation_salle.salle = Salle.id_salle
 										WHERE Salle.id_salle = id_salle AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation
 										GROUP BY Salle.id_salle);
-	IF _salle_existe IS NULL THEN 
+	return 0;
+    IF _salle_existe IS NULL THEN 
 		SIGNAL SQLSTATE '02001' SET MESSAGE_TEXT = "La salle dont vous tentez de vérifier la vitalité n'existe pas";
 	END IF;
     
