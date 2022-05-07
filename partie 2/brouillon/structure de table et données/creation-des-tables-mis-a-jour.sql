@@ -1,16 +1,19 @@
+ 
+
+
 #-------------------------------------------------------------------------------------------------
 #Ceci est le script de création SQL du travail de session "ressources monstrueuses": La partie 2
 #Ce n'est qu'une modification de celui de la partie 1
 #
 # date de début: 3 mars 2022
-# date de modification: 21 avril 2022
+# date de modification: 21 avril 2022 (partie 2)
 #
 #
 #Par: Clément Provencher et Simon Fréchette
 # langage: SQL
 #
 #-------------------------------------------------------------------------------------------------
-
+#SET names utf8mb4;
 #  -- use database
 DROP DATABASE IF EXISTS DonjonInc;
 CREATE DATABASE DonjonInc;
@@ -29,7 +32,9 @@ CREATE TABLE Salle(
     
     FOREIGN KEY (salle_suivante) REFERENCES Salle(id_salle),
     CONSTRAINT fonction_min_5_chars CHECK (length(fonction) >= 5)
-);
+)    
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Salle
 
 #-------------------------------------------------------------------------------------------------
@@ -43,7 +48,9 @@ degat_base INT NOT NULL,
 
 CONSTRAINT vie_max_superieure_zero CHECK (point_vie_maximal > 0),
 CONSTRAINT degat_base_superieur_zero CHECK (degat_base > 0)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Famille_monstre
 
 #-------------------------------------------------------------------------------------------------
@@ -60,7 +67,9 @@ id_famille INT NOT NULL,
 experience INT NOT NULL,
 
 FOREIGN KEY (id_famille) REFERENCES Famille_monstre(id_famille)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Monstre
 
 #-------------------------------------------------------------------------------------------------
@@ -72,7 +81,9 @@ titre VARCHAR(255) NOT NULL,
 niveau_responsabilite INT NOT NULL,
 
 CONSTRAINT niveau_responsabilite_positif CHECK (niveau_responsabilite >= 0)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Responsabilite
 
 #-------------------------------------------------------------------------------------------------
@@ -89,7 +100,9 @@ fin_affectation DATETIME,
 FOREIGN KEY (monstre) REFERENCES Monstre(id_monstre),
 FOREIGN KEY (responsabilite) REFERENCES Responsabilite(id_responsabilite),
 FOREIGN KEY (salle) REFERENCES Salle(id_salle)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Affectation_salle
 
 #-------------------------------------------------------------------------------------------------
@@ -103,7 +116,9 @@ intelligence INT NOT NULL,
 
 FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille),
 CONSTRAINT intelligence_positive CHECK (intelligence >= 0)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Humanoide
 
 #-------------------------------------------------------------------------------------------------
@@ -118,7 +133,9 @@ infectieux TINYINT NOT NULL,
 FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille),
 CONSTRAINT vulnerable_soleil_bool CHECK (vulnerable_soleil BETWEEN 0 AND 1),
 CONSTRAINT infectieux_bool CHECK (infectieux BETWEEN 0 AND 1)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Mort_vivant
 
 #-------------------------------------------------------------------------------------------------
@@ -131,7 +148,9 @@ element ENUM("air","feu","terre","eau") NOT NULL,
 taille ENUM("rikiki","moyen","grand","colossal") NOT NULL,
 
 FOREIGN KEY (famille) REFERENCES Famille_monstre(id_famille)
-);
+)
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Elementaire
 
 #-------------------------------------------------------------------------------------------------
@@ -143,7 +162,9 @@ CREATE TABLE Coffre_tresor(
     salle INTEGER,
     
     FOREIGN KEY (salle) REFERENCES Salle(id_salle)
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Coffre_tresor
 
 #-------------------------------------------------------------------------------------------------
@@ -157,7 +178,9 @@ CREATE TABLE Objet(
     
     CONSTRAINT masse_superieure_zero CHECK (masse > 0),
     CONSTRAINT valeur_superieure_zero CHECK (valeur > 0)
-    );
+    )
+    ENGINE = innoDB 
+	DEFAULT CHARSET = utf8;
 # -- fin Objet
 
 #-------------------------------------------------------------------------------------------------
@@ -172,7 +195,9 @@ CREATE TABLE Ligne_coffre(
     FOREIGN KEY (coffre) REFERENCES Coffre_tresor(id_coffre_tresor),
     FOREIGN KEY (objet) REFERENCES Objet(id_objet),
     CONSTRAINT ligne_quantite_superieure_zero CHECK (quantite > 0)
-    );
+    )
+    ENGINE = innoDB 
+	DEFAULT CHARSET = utf8;
 # -- fin Objet
 
 #-------------------------------------------------------------------------------------------------
@@ -183,7 +208,9 @@ CREATE TABLE Expedition(
     nom_equipe VARCHAR(255) UNIQUE NOT NULL,
     depart DATETIME,
     terminaison DATETIME
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Expedition
 
 #-------------------------------------------------------------------------------------------------
@@ -198,7 +225,9 @@ CREATE TABLE Visite_salle(
     PRIMARY KEY(salle, expedition),
     FOREIGN KEY (salle) REFERENCES Salle(id_salle),
     FOREIGN KEY (expedition) REFERENCES Expedition(id_expedition)
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Visite_salle
 
 #-------------------------------------------------------------------------------------------------
@@ -213,7 +242,9 @@ CREATE TABLE Aventurier(
     attaque INTEGER NOT NULL,
     
     CONSTRAINT niveau_superieur_zero CHECK (niveau > 0)
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Aventurier
 
 #-------------------------------------------------------------------------------------------------
@@ -226,7 +257,9 @@ CREATE TABLE Expedition_aventurier(
     PRIMARY KEY(id_expedition, id_aventurier),
     FOREIGN KEY (id_expedition) REFERENCES Expedition(id_expedition),
     FOREIGN KEY (id_aventurier) REFERENCES Aventurier(id_aventurier)
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Expedition_aventurier
 
 #-------------------------------------------------------------------------------------------------
@@ -241,7 +274,9 @@ CREATE TABLE Inventaire_expedition(
     FOREIGN KEY (id_expedition) REFERENCES Expedition(id_expedition),
     FOREIGN KEY (objet) REFERENCES Objet(id_objet),
     CONSTRAINT inventaire_quantite_superieure_zero CHECK (quantite > 0)
-    );
+    )
+ENGINE = innoDB 
+DEFAULT CHARSET = utf8;
 # -- fin Inventaire_expedition
 
 #-------------------------------------------------------------------------------------------------
