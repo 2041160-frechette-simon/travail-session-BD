@@ -116,7 +116,7 @@ BEGIN
     DECLARE _fonction_salle_1 VARCHAR(255);
     DECLARE _code INT;
     DECLARE _message TEXT;
-    
+        
     # La classe d'erreur 40 a été utilisée pour substituer la classe 01 (warning). Puisque la procédure retourbe une valeur, les warnings sont effacés à la sortie. Voir l'article ci-dessous:
     # https://dev.mysql.com/doc/refman/8.0/en/signal.html
     DECLARE EXIT HANDLER FOR SQLSTATE '40001'
@@ -224,6 +224,14 @@ DROP PROCEDURE IF EXISTS test_fonction_5_salle_peuplee;
 DELIMITER $$
 CREATE PROCEDURE test_fonction_5_salle_peuplee()
 BEGIN
+	
+	# reconstruction des affectations de la salle 1
+    INSERT INTO Affectation_salle(id_affectation,monstre,responsabilite,salle,debut_affectation,fin_affectation) VALUES
+	(1,11,1,1,'1082-06-26 04:00:00','1082-08-06 12:00:00'),
+	(2,15,2,1,'1082-06-07 04:45:00','1082-08-22 00:45:00'),
+	(39,17,11,1,'1082-09-02 16:45:00','1082-11-28 12:30:00'),
+	(40,18,	11,1,'1082-08-27 08:30:00','1082-11-20 20:00:00');
+    
 	#Pour ce test, nous allons prendre une salle existante où il y a des monstres d'affectés. Aussi, on s'assurera que les monstres affectés sont en vie.
     # le tout est vérifié à l'aide de la requête suivante:
     #SELECT salle,debut_affectation,fin_affectation, Monstre.point_vie FROM Affectation_salle 

@@ -127,8 +127,8 @@ BEGIN
     DECLARE nb_monstres_affectés INT;
 	DECLARE _salle_existe INT; # null si la salle n'existe pas.
 	
-	SET _salle_existe = (SELECT Salle.id_salle FROM Salle
-						WHERE Salle.id_salle = id_salle);
+	SET _salle_existe = (SELECT Salle.id_salle FROM Salle WHERE Salle.id_salle = id_salle);
+    
 	SET nb_monstres_affectés = (SELECT count(Affectation_salle.monstre) FROM Affectation_salle
                                         WHERE Affectation_salle.salle = id_salle AND date_a_verif BETWEEN Affectation_salle.debut_affectation AND Affectation_salle.fin_affectation);
 

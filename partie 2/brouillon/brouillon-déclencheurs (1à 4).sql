@@ -144,7 +144,7 @@ BEGIN
     DECLARE _quantite_objet INT;
     DECLARE _etat_surcharge INT;
 	SET _quantite_objet = NEW.quantite;
-	SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet);
+	SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet WHERE Objet.id_objet = NEW.objet);
 	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	
 
@@ -163,7 +163,7 @@ BEGIN
     DECLARE _quantite_objet INT;
     DECLARE _etat_surcharge INT;
 	SET _quantite_objet = NEW.quantite-OLD.quantite;
-    SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet);
+    SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet AND Ligne_coffre.coffre = NEW.coffre);
 	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	
 
@@ -190,7 +190,7 @@ BEGIN
     
     # Si deux éléments opposés sont dans la même pièce, une exception de la classe avertissement est lancée:
     IF _presence_elements_opposes = 1 THEN
-		SIGNAL SQLSTATE '01001'
+		SIGNAL SQLSTATE '40001'
 			SET MESSAGE_TEXT = _message_exception;
     END IF;
 END$$

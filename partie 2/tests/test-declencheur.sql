@@ -74,6 +74,7 @@ BEGIN
 			# select pour vérifier. Normalement, le handler devrait empêcher ces lignes de s'éxécuter.
             SELECT "Aucune exception n'a été levée. Le test a échoué." AS resultat_trigger1_insert_masse;
 		COMMIT;
+        
 		# mise à zéro des enregistrements de test créés:
 		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 AND Ligne_coffre.objet = 1000;
 		DELETE FROM Ligne_coffre WHERE Ligne_coffre.coffre = 1000 AND Ligne_coffre.objet = 1001;
@@ -209,7 +210,7 @@ BEGIN
 		INSERT INTO Coffre_tresor(id_coffre_tresor,code_secret,salle)
 		VALUES (1000,"secret",13);
 		INSERT INTO Objet(id_objet,nom,valeur,masse)
-		VALUES (1000,"objet initial",10,290);
+		VALUES (1000,"objet initial",10,1);
 		INSERT INTO Ligne_coffre(coffre,objet,quantite)
 		VALUES (1000,1000,14);
         
@@ -275,13 +276,15 @@ BEGIN
     DECLARE _code INT;
     DECLARE _message TEXT;
     
-    DECLARE EXIT HANDLER FOR SQLSTATE '01001'
+	# La classe d'erreur 40 a été utilisée pour substituer la classe 01 (warning). Puisque la procédure retourbe une valeur, les warnings sont effacés à la sortie. Voir l'article ci-dessous:
+    # https://dev.mysql.com/doc/refman/8.0/en/signal.html
+    DECLARE EXIT HANDLER FOR SQLSTATE '40001'
     BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_code = RETURNED_SQLSTATE,
 			_message = MESSAGE_TEXT;
        #SELECT _code,_message;
-        SELECT "Le test a réussi ! Un avertissement a été levé au moment d'affecter deux élémentaires opposés dans la même pièce.";
+        SELECT "Le test a réussi ! Un avertissement a été levé au moment d'affecter deux élémentaires opposés dans la même pièce." AS resultat_trigger2;
         ROLLBACK;
     END;
     
