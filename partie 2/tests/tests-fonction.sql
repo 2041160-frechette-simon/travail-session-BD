@@ -128,7 +128,6 @@ BEGIN
     
 	#suppression des affectations reliées à la salle 1 selon l'insertion donnée.
 	DELETE FROM Affectation_salle WHERE salle = 1;
-    #SELECT id_affectation, fonction FROM Salle INNER JOIN Affectation_salle ON salle = Salle.id_salle WHERE salle = 1;
     
     START TRANSACTION;
 		# il faut d'abord trouver la fonction de la salle 1. C'est elle que l'on utilise pour le test

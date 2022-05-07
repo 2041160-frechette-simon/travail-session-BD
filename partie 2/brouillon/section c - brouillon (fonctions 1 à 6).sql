@@ -67,9 +67,9 @@ BEGIN
     END IF;
     
     # si il n'y a aucune salle d'affectée, le count retournera 0
-    SET _nombre_affectations = (SELECT count(Affectation_salle.id_affectation) FROM Salle INNER JOIN Affectation_salle ON Salle.id_salle = Affectation_salle.salle WHERE salle.fonction = _fonction_salle_existante AND date_a_verif BETWEEN debut_affectation AND fin_affectation);
+    SET _nombre_affectations = (SELECT count(Affectation_salle.id_affectation) FROM Salle INNER JOIN Affectation_salle ON Salle.id_salle = Affectation_salle.salle WHERE salle.fonction = _fonction_salle_existante);
     
-	IF _nombre_affectations <= 0 THEN 
+	IF _nombre_affectations =0 THEN 
 		SIGNAL SQLSTATE '01001'
 			SET MESSAGE_TEXT = "Il n'y a aucun responsable dans la salle choisie au moment fourni.";
 	END IF;
