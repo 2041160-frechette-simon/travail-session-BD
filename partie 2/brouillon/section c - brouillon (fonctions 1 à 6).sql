@@ -69,8 +69,8 @@ BEGIN
     # si il n'y a aucune salle d'affectée, le count retournera 0
     SET _nombre_affectations = (SELECT count(Affectation_salle.id_affectation) FROM Salle INNER JOIN Affectation_salle ON Salle.id_salle = Affectation_salle.salle WHERE salle.fonction = _fonction_salle_existante);
     
-	IF _nombre_affectations =0 THEN 
-		SIGNAL SQLSTATE '01001'
+	IF _nombre_affectations = 0 THEN 
+		SIGNAL SQLSTATE '40001'
 			SET MESSAGE_TEXT = "Il n'y a aucun responsable dans la salle choisie au moment fourni.";
 	END IF;
     
@@ -171,11 +171,7 @@ CREATE FUNCTION verifier_vitalite_aventurier_expedition(id_expedition INT) RETUR
 BEGIN
 	DECLARE _nombre_aventuriers_vivant INT;
     DECLARE _expedition_existe INT; # null si elle n'existe pas, 1 sinon.
-    
-	
-    SET _expedition_existe = (SELECT Expedition_aventurier.id_expedition FROM Expedition_aventurier 
-								WHERE Expedition_aventurier.id_expedition = id_expedition
-                                );
+    SET _expedition_existe = (SELECT Expedition.id_expedition FROM Expedition WHERE Expedition.id_expedition = id_expedition);
 	
     IF _expedition_existe IS NULL THEN
 		SIGNAL SQLSTATE '02001'
@@ -192,6 +188,7 @@ BEGIN
 	IF _nombre_aventuriers_vivant > 0 THEN
 		RETURN 1;
     END IF;
+    
 	RETURN 0;
 END$$
 DELIMITER ;

@@ -117,7 +117,9 @@ BEGIN
     DECLARE _code INT;
     DECLARE _message TEXT;
     
-    DECLARE EXIT HANDLER FOR SQLSTATE '01001'
+    # La classe d'erreur 40 a été utilisée pour substituer la classe 01 (warning). Puisque la procédure retourbe une valeur, les warnings sont effacés à la sortie. Voir l'article ci-dessous:
+    # https://dev.mysql.com/doc/refman/8.0/en/signal.html
+    DECLARE EXIT HANDLER FOR SQLSTATE '40001'
     BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_code = RETURNED_SQLSTATE,
