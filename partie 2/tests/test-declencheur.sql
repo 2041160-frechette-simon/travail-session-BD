@@ -36,7 +36,7 @@ BEGIN
 		DECLARE EXIT HANDLER FOR SQLSTATE '02002'
 		BEGIN
 			GET DIAGNOSTICS CONDITION 1 _code = RETURNED_SQLSTATE, _message = MESSAGE_TEXT;
-			SELECT _code, _message;
+			#SELECT _code, _message;
 			SELECT "Le test a réussi ! Le déclencheur vérifiant l'excès de la masse totale des objets dans le coffre a été signalé." AS resultat_trigger1_insert_masse;
 			ROLLBACK;
 		END;
@@ -59,9 +59,17 @@ BEGIN
 			VALUES (1000,1000,1);
 			INSERT INTO Ligne_coffre(coffre,objet,quantite)
 			VALUES (1000,1001,1);
+                        
+#SELECT sum(Objet.masse * Ligne_coffre.quantite) FROM Objet
+						#INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
+						#INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
+                        #WHERE Coffre_tresor.id_coffre_tresor = 1000;
+            
 
-			# à l'insertion de cet objet, une exception devrait être levée. Le trigger devrait être fait avant l'insertion, 
-			#de sorte que l'exception serait prise en charge juste après que l'objet fautif se soit inséré.
+            
+
+			# à l'insertion de cet objet avec cette ligne, une exception devrait être levée. Le trigger devrait être fait avant l'insertion, 
+			#de sorte que l'exception serait prise en charge juste avant que l'objet fautif se soit inséré.
 			
 			# select pour vérifier. Normalement, le handler devrait empêcher ces lignes de s'éxécuter.
             SELECT "Aucune exception n'a été levée. Le test a échoué." AS resultat_trigger1_insert_masse;
@@ -86,12 +94,12 @@ BEGIN
 	DECLARE _message TEXT;
     
 	# exception si il contient 15 objets ou plus.
-	DECLARE EXIT HANDLER FOR 02001
+	DECLARE EXIT HANDLER FOR SQLSTATE '02001'
 	BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_Code = RETURNED_SQLSTATE,
 			_message= MESSAGE_TEXT;
-		SELECT _code,_message;
+		#SELECT _code,_message;
 		SELECT "Le test a réussi ! Le déclencheur vérifiant l'excès du nombre d'objets a été signalé." AS resultat_trigger1_insert_obj;
 		ROLLBACK;
 	END;
@@ -136,7 +144,7 @@ BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_Code = RETURNED_SQLSTATE,
 			_message= MESSAGE_TEXT;
-		SELECT _code,_message;
+		#SELECT _code,_message;
 		SELECT "Le test a réussi ! Le déclencheur vérifiant l'excès de masse a été signalé." AS resultat_trigger1_update_masse;
 		ROLLBACK;
 	END;
@@ -154,8 +162,9 @@ BEGIN
 		VALUES (1000,"objet initial",10,290);
 		INSERT INTO Ligne_coffre(coffre,objet,quantite)
 		VALUES (1000,1000,1);
+        UPDATE Ligne_coffre SET quantite = 2 WHERE objet = 1000;
         
-        UPDATE Objet SET masse = 301 WHERE id_objet = 1000;
+
     
 		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_trigger1_update_masse;
     COMMIT;
@@ -185,7 +194,7 @@ BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_Code = RETURNED_SQLSTATE,
 			_message= MESSAGE_TEXT;
-		SELECT _code,_message;
+		#SELECT _code,_message;
 		SELECT "Le test a réussi ! Le déclencheur vérifiant l'excès du nombre d'objets a été signalé." AS resultat_trigger1_update_obj;
         ROLLBACK;
 	END;
@@ -271,7 +280,7 @@ BEGIN
 		GET DIAGNOSTICS CONDITION 1
 			_code = RETURNED_SQLSTATE,
 			_message = MESSAGE_TEXT;
-        SELECT _code,_message;
+       #SELECT _code,_message;
         SELECT "Le test a réussi ! Un avertissement a été levé au moment d'affecter deux élémentaires opposés dans la même pièce.";
         ROLLBACK;
     END;
@@ -308,8 +317,8 @@ BEGIN
     # affectation des deux monstres à la même salle, au même moment
     INSERT INTO Affectation_salle(id_affectation,monstre,responsabilite,salle,debut_affectation,fin_affectation)
     VALUES
-    (1000,1000,1000,13,'2043:05:01 00:00:00','2046:05:01 00:00:00'),
-    (1001,1001,1000,13,'2042:05:01 00:00:00', '2045:05:01 00:00:00');
+    (1000,1000,1000,13,'2043-05-01 00:00:00','2046-05-01 00:00:00'),
+    (1001,1001,1000,13,'2042-05-01 00:00:00', '2045-05-01 00:00:00');
     
     #SELECT * FROM Affectation_salle WHERE monstre = 1000 OR monstre = 1001;
 	#SELECT elements_opposes_piece(13, '2042:05:01 00:00:00', '2045:05:01 00:00:00');

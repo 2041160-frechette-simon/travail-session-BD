@@ -83,47 +83,46 @@ DROP FUNCTION IF EXISTS verifier_surcharge_coffre;
 DELIMITER $$
 CREATE FUNCTION verifier_surcharge_coffre(id_coffre_a_verif INT,masse_objet_ajoute INT, quantite_ligne_ajoutee INT) RETURNS TINYINT READS SQL DATA
 BEGIN    
-	DECLARE _masse_totale FLOAT;
+	DECLARE _masse_totale INT;
     DECLARE _nb_obj INT;
-    SET _nb_obj = (SELECT sum(Ligne_coffre.quantite) FROM Ligne_coffre
-				INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
-                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
-                GROUP BY Coffre_tresor.id_coffre_tresor);
-
-# on ajoute le nombre d'objets associé à la ligne qui s'apprête à être ajoutée
-IF _nb_obj IS NULL THEN 
-	SET _nb_obj = quantite_ligne_ajoutee;
-ELSE
-	SET _nb_obj = _nb_obj + quantite_ligne_ajoutee;
-END IF;
-
-	IF _nb_obj > 15 THEN
-		SIGNAL SQLSTATE '02001'
-			SET MESSAGE_TEXT = "le coffre auquel vous tentez d'ajouter un objet contient déjà 15 objets.";
-		RETURN 1;
-	END IF; 
+    
     
 	SET _masse_totale = (SELECT sum(Objet.masse * Ligne_coffre.quantite) FROM Objet
-						INNER JOIN ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
+						INNER JOIN Ligne_coffre ON Objet.id_objet = Ligne_coffre.objet
 						INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
-                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif
-                        GROUP BY Coffre_tresor.id_coffre_tresor);
-
-# on ajoute la masse totale de la ligne qui s'apprête à être ajoutée
-IF _masse_totale IS NULL THEN
-	SET _masse_totale = (masse_objet_ajoute * quantite_ligne_ajoutee);
-ELSE
-	SET _masse_totale = _masse_totale + (masse_objet_ajoute * quantite_ligne_ajoutee);
-END IF;
-
-
+                        WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+	
+	# on ajoute la masse totale de la ligne qui s'apprête à être ajoutée
+	IF _masse_totale IS NULL THEN
+		SET _masse_totale = (masse_objet_ajoute * quantite_ligne_ajoutee);
+	ELSE
+		SET _masse_totale = _masse_totale + (masse_objet_ajoute * quantite_ligne_ajoutee);
+	END IF;
 
 	IF _masse_totale > 300 THEN 
 		SIGNAL SQLSTATE '02002'
 			SET MESSAGE_TEXT = "En ajoutant un objet dans ce coffre, vous excédez la capacité totale de ce dernier (300kg)";
 		RETURN 1;
 	END IF;
-	
+    
+    
+    SET _nb_obj = (SELECT sum(Ligne_coffre.quantite) FROM Ligne_coffre
+				INNER JOIN Coffre_tresor ON Ligne_coffre.coffre = Coffre_tresor.id_coffre_tresor
+                WHERE Coffre_tresor.id_coffre_tresor = id_coffre_a_verif);
+
+	# on ajoute le nombre d'objets associé à la ligne qui s'apprête à être ajoutée
+	IF _nb_obj IS NULL THEN 
+		SET _nb_obj = quantite_ligne_ajoutee;
+	ELSE
+		SET _nb_obj = _nb_obj + quantite_ligne_ajoutee;
+	END IF;
+
+	IF _nb_obj > 15 THEN
+		SIGNAL SQLSTATE '02001'
+			SET MESSAGE_TEXT = "le coffre auquel vous tentez d'ajouter un objet contient déjà 15 objets.";
+		RETURN 1;
+	END IF; 
+    	
     RETURN 0;
 END$$
 
@@ -145,7 +144,7 @@ BEGIN
     DECLARE _quantite_objet INT;
     DECLARE _etat_surcharge INT;
 	SET _quantite_objet = NEW.quantite;
-    SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Objet.id_objet = NEW.objet);
+	SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet);
 	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	
 
@@ -163,7 +162,7 @@ BEGIN
 	DECLARE _masse_objet_a_verif INT;
     DECLARE _quantite_objet INT;
     DECLARE _etat_surcharge INT;
-	SET _quantite_objet = NEW.quantite;
+	SET _quantite_objet = NEW.quantite-OLD.quantite;
     SET _masse_objet_a_verif = (SELECT Objet.masse FROM Objet INNER JOIN Ligne_coffre ON Ligne_coffre.objet = id_objet WHERE Ligne_coffre.objet = NEW.objet);
 	SET _etat_surcharge = verifier_surcharge_coffre(NEW.coffre,_masse_objet_a_verif,_quantite_objet); # on vérifie l'état de surcharge du coffre. Si le coffre est surchargé, une exception sera lancée dans la fonction.
 END$$	

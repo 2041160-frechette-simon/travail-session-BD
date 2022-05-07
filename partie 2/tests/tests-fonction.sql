@@ -128,11 +128,13 @@ BEGIN
     
 	#suppression des affectations reliées à la salle 1 selon l'insertion donnée.
 	DELETE FROM Affectation_salle WHERE salle = 1;
+    #SELECT id_affectation, fonction FROM Salle INNER JOIN Affectation_salle ON salle = Salle.id_salle WHERE salle = 1;
     
     START TRANSACTION;
 		# il faut d'abord trouver la fonction de la salle 1. C'est elle que l'on utilise pour le test
 		SET _fonction_salle_1 = (SELECT Salle.fonction FROM Salle WHERE id_salle = 1);
-		SET _id_responsable_trouve = trouver_responsable_salle(_fonction_salle_1,'2040:05:01 00:00:00');
+		SET _id_responsable_trouve = trouver_responsable_salle(_fonction_salle_1,'2040-05-01 00:00:00');
+
 		
 		#à ce stade-ci, une exception devrait avoir été levée
 		SELECT _id_responsable_trouve, "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc3_affectation_inexistante;
@@ -228,7 +230,7 @@ BEGIN
     #WHERE Affectation_salle.salle = 1 AND Monstre.point_vie >0;
     # avec l'insertion fournie, on peut en conclure que en '1082:06:26 04:00:00' un monstre en vie a été affecté à la salle 1.
     
-    IF verifier_vitalite_monstre_salle(1,'1082:06:27 00:00:00') = 1 THEN
+    IF verifier_vitalite_monstre_salle(1,'1082-06-27 00:00:00') = 1 THEN
 		SELECT "La vitalité a été correctement déclarée" AS resultat_fonc5_salle_peuplee;
 	ELSE
 		SELECT "La vitalité a été déclare fausse à tort" AS resultat_fonc5_salle_peuplee;
@@ -264,7 +266,7 @@ BEGIN
     
     START TRANSACTION;
 		#vérifications de la vitalité
-		SET _vitalite_trouve = verifier_vitalite_monstre_salle(1,'1082:06:27 04:00:00');
+		SET _vitalite_trouve = verifier_vitalite_monstre_salle(1,'1082-06-27 04:00:00');
 		
 		# à ce stade-ci, une exception devrait avoir été levée
 		SELECT "Aucune exception n'a été levée. Le test a échoué" AS resultat_fonc5_salle_non_affectee;
